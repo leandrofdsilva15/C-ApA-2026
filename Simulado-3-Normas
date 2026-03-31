@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C-ApA-SIC-2026: SIMULADO 03 – SÍNTESE CRÍTICA</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0d1117; --card: #161b22; --card2: #1c2333;
+            --border: #30363d; --text: #e6edf3; --text2: #8b949e;
+            --accent: #f85149; --accent2: #c0392b;
+            --green: #3fb950; --red: #f85149; --radius: 12px;
+        }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 30px; }
+        .title { font-size: 1.5rem; font-weight: 600; color: var(--accent); }
+        .subtitle { font-size: 0.85rem; color: var(--text2); margin-top: 4px; }
+        .stats { display: flex; gap: 15px; font-size: 0.9rem; color: var(--text2); }
+        .stat-box { background: var(--card); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); }
+        .score-green { color: var(--green); font-weight: bold; }
+        .score-red { color: var(--red); font-weight: bold; }
+        .progress-container { width: 100%; height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 30px; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s ease; }
+        .question-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px; margin-bottom: 20px; }
+        .badge { display: inline-block; padding: 4px 10px; background: var(--card2); border: 1px solid var(--border); border-radius: 20px; font-size: 0.8rem; color: var(--text2); margin-bottom: 15px; }
+        .enunciado { font-size: 1.1rem; font-weight: 500; margin-bottom: 25px; color: #fff; white-space: pre-line; }
+        .options { display: flex; flex-direction: column; gap: 12px; }
+        .option { background: var(--card2); border: 1px solid var(--border); padding: 15px 20px; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: flex-start; gap: 15px; font-size: 1rem; }
+        .option:hover:not(.disabled) { border-color: var(--accent); transform: translateX(5px); }
+        .option.correct { border-color: var(--green); background: rgba(63,185,80,0.1); }
+        .option.incorrect { border-color: var(--red); background: rgba(248,81,73,0.1); }
+        .option.disabled { cursor: default; opacity: 0.8; }
+        .option-letter { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: var(--card); border-radius: 50%; font-weight: bold; font-size: 0.9rem; color: var(--text2); border: 1px solid var(--border); flex-shrink: 0; }
+        .option.correct .option-letter { color: var(--green); border-color: var(--green); }
+        .option.incorrect .option-letter { color: var(--red); border-color: var(--red); }
+        .feedback { margin-top: 25px; padding: 20px; border-radius: 8px; display: none; background: var(--card2); border-left: 4px solid var(--accent); }
+        .feedback.show { display: block; animation: fadeIn 0.4s ease; }
+        .feedback-title { font-weight: bold; margin-bottom: 10px; font-size: 1.1rem; }
+        .feedback-correct .feedback-title { color: var(--green); }
+        .feedback-incorrect .feedback-title { color: var(--red); }
+        .explanation { color: var(--text); font-size: 0.95rem; line-height: 1.5; }
+        .controls { display: flex; justify-content: space-between; margin-top: 30px; }
+        .btn { padding: 12px 24px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover:not(:disabled) { background: var(--accent2); }
+        .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover:not(:disabled) { border-color: var(--text2); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div>
+            <div class="title">SIMULADO 03 – SÍNTESE CRÍTICA</div>
+            <div class="subtitle">C-ApA-SIC-2026 | LSTM-Simulator v1.0 | Guerra Cibernética e Doutrina Avançada</div>
+        </div>
+        <div class="stats">
+            <div class="stat-box">Q <span id="current-q">1</span>/<span id="total-q">0</span></div>
+            <div class="stat-box">✅ <span class="score-green" id="score-correct">0</span></div>
+            <div class="stat-box">❌ <span class="score-red" id="score-incorrect">0</span></div>
+        </div>
+    </div>
+    <div class="progress-container"><div class="progress-bar" id="progress"></div></div>
+    <div style="text-align:right; margin-bottom:20px;">
+        <button class="btn btn-secondary" onclick="resetProgress()" style="padding:8px 16px;font-size:0.9rem;">Resetar Histórico</button>
+    </div>
+    <div id="quiz-container">
+        <div class="question-card">
+            <div class="badge" id="q-topic">Tópico</div>
+            <div class="enunciado" id="q-text">Carregando...</div>
+            <div class="options" id="q-options"></div>
+            <div class="feedback" id="q-feedback">
+                <div class="feedback-title" id="feedback-title">Resultado</div>
+                <div class="explanation" id="feedback-exp"></div>
+            </div>
+        </div>
+        <div class="controls">
+            <button class="btn btn-secondary" id="btn-prev" onclick="prevQuestion()" disabled>← Anterior</button>
+            <button class="btn btn-primary" id="btn-next" onclick="nextQuestion()" disabled>Próxima →</button>
+        </div>
+    </div>
+</div>
+<script>
+const QUESTOES = [
+    // Q1.1 – Princípio da Ofensiva
+    { id: 4001, topico: "Síntese | Princípio da Ofensiva (GCiber/EMA)", enunciado: "No escopo da Guerra Cibernética (GCiber), qual alternativa define corretamente o Princípio da Ofensiva nas ações do Ciberespaço da MB?", alternativas: ["Aguardar o ataque inimigo de forma passiva antes de qualquer resposta autorizada pelo EMA.", "Reunir e publicar vulnerabilidades dos adversários para forçá-los a se defender.", "Tomar e manter a iniciativa, agindo proativamente para degradar, negar ou destruir a capacidade cibernética adversária.", "Defender exclusivamente os próprios nós de rede sem nenhuma contramedida ativa externa.", "Bloquear o acesso à internet como primeira medida de resposta a qualquer incidente."], correta: 2, explicacao: "O Princípio da Ofensiva na GCiber exige iniciativa e ação proativa para degradar o adversário — assim como em qualquer outro domínio de combate (terra, mar, ar, espaço). Esperar passivamente entrega ao inimigo a vantagem da surpresa." },
+    // Q1.2 – Compartimentação e Isolamento Físico
+    { id: 4002, topico: "Síntese | Compartimentação Física (Hardening)", enunciado: "As diretivas MB estabelecem que datacenters e nós críticos devem adotar Compartimentação e Isolamento Físico. Qual o objetivo tático desta infraestrutura?", alternativas: ["Facilitar o trabalho colaborativo de qualquer militar com acesso ao prédio.", "Reduzir o custo de climatização dos racks de servidores.", "Impedir ataques físicos e/ou penetração furtiva, garantindo que somente pessoal com credencial específica (Need-to-Know) acesse os enclaves críticos, cortando vetores de invasão físicos que contornam toda a segurança lógica.", "Permitir que auditores externos tenham acesso irrestrito para facilitar inspeções.", "Centralizar todos os equipamentos em uma única sala para facilitar a manutenção."], correta: 2, explicacao: "Compartimentação física: CPD isolado com portas corta-fogo, controle biométrico/crachá, CFTV e racks trancados. Um atacante com acesso físico ao servidor bypassar qualquer firewall lógico — a segurança física é a última linha de defesa." },
+    // Q1.3 – Defesa em Profundidade
+    { id: 4003, topico: "Síntese | Defesa em Profundidade (ComOpNav)", enunciado: "Na Defesa Cibernética do ComOpNav, em vez de construir um único 'Muro' intransponível, adota-se a sobreposição de camadas (Proxy + Antivírus + IPS + Firewall). Como se chama esta abordagem doutrinária?", alternativas: ["Zero Trust Architecture.", "Defesa Perimetral Única.", "Defesa em Profundidade (Defense in Depth).", "Modelo OSI de Segurança Estratificada.", "Protocolo NATO de Segurança Multinível."], correta: 2, explicacao: "Defesa em Profundidade: múltiplas camadas de segurança sobrepostas, de modo que a falha de uma não comprometa o sistema inteiro. Mesmo que um atacante passe o firewall, ainda encontrará o IPS, o antivírus, a segmentação de rede e as políticas de acesso mínimo." },
+    // Q2 – Ataque Cinético
+    { id: 4004, topico: "Síntese | Ataque Cibernético Cinético (GCiber)", enunciado: "Um cibernético frotista aplica um 'Ataque Cinético'. Qual a consequência intencional exata?", alternativas: ["Perda apenas das senhas do e-mail institucional público.", "Bloqueio de arquivos com Ransomware sem afetar a energia dos portos.", "O código injetado transcende o dano lógico e gera dano físico real — turbinas destruídas, redes elétricas desligadas, sistemas SCADA industriais comprometidos.", "Recrutamento de hackers em fóruns públicos.", "Disparo de postagens políticas em mídias de massa."], correta: 2, explicacao: "Ataque Cinético (ex: Stuxnet) = transposição do ciberataque para o mundo físico real. O código manipula PLCs industriais causando danos materiais tangíveis (rotores destruídos, comportas abertas, explosões). É a fronteira entre ciberataque e ato de guerra convencional." },
+    // Q3 – Problema da Atribuição
+    { id: 4005, topico: "Síntese | Problema da Atribuição (Direito Internacional)", enunciado: "O 'Problema da Atribuição' na Guerra Cibernética fundamenta-se tecnicamente em:", alternativas: ["O tráfego de governos jamais usa IPs por trás de firewalls civis.", "As agências nunca têm orçamento atribuído aos seus diretores oficiais.", "Ataques utilizam teias de botnets com milhares de roteadores hackeados civis globais, mascarando a origem soberana a tal ponto que provar juridicamente que o 'País Y apertou o botão' é técnica e documentalmente inconclusivo.", "Os mísseis cibernéticos são impossíveis de rastrear por design técnico dos protocolos TCP/IP.", "A falta de cooperação internacional das plataformas de tecnologia civil."], correta: 2, explicacao: "A Atribuição é o maior desafio jurídico do ciberdireito: botnets roteiam o ataque por dezenas de países (IP de origem = servidor hackeado na Alemanha → pivô na China → atacante real na Coreia do Norte). Remover esse nexo de causalidade torna inviável o Jus ad Bellum por via formal na ONU." },
+    // Q4 – DDoS e Disponibilidade
+    { id: 4006, topico: "Síntese | DDoS e Pilar da Disponibilidade", enunciado: "Um ataque DDoS volumétrico visa inviabilizar aprovações de compras aeronavais da MB. Qual pilar normativo é predominantemente agredido?", alternativas: ["Confidencialidade — porque os dados das compras ficam expostos.", "Disponibilidade — pois o serviço é tornado inacessível para os usuários legítimos.", "Integridade — porque os valores das compras são alterados.", "Autenticidade — porque as identidades dos compradores são falsificadas.", "Nenhum pilar, pois DDoS é apenas um incômodo temporário."], correta: 1, explicacao: "DDoS (Negação de Serviço Distribuída) é um ataque direto ao pilar da Disponibilidade: tornar o sistema inacessível para usuários legítimos. Não viola diretamente Confidencialidade (não há roubo de dados) nem Integridade (não há alteração de dados)." },
+    // Q5 – Condição Vermelha
+    { id: 4007, topico: "Síntese | Condição Vermelha (Alerta Cibernético MB)", enunciado: "A doutrina MB prevê 'Condição Vermelha' para o Espaço Ciber. Refere-se a:", alternativas: ["Dia de inspeção inopinada da Capitania dos Portos.", "Alertas passivos rotineiros com baixo volume de tráfego suspeito.", "Ataques em curso que causam degradação severa ou interrupção real da Infraestrutura Crítica Naval — exigindo Defesa Ativa e possível contraofensiva.", "A cor do brasão da DCTIM nos documentos do RAD.", "USBs vermelhos com criptografia MB para transporte seguro."], correta: 2, explicacao: "Condição Vermelha = ápice da prontidão cibernética: ataque real em curso comprometendo Infraestrutura Crítica. Difere da Amarela (ameaça real com impacto limitado) e Laranja (ataque em progressão extensa). Na Vermelha, o ComOpNav assume o controle e autoriza Defesa Ativa plena." },
+    // Q6 – Exploração Cibernética (vs Ataque)
+    { id: 4008, topico: "Síntese | Exploração vs Ataque Cibernético", enunciado: "Uma 'Exploração Cibernética Estrangeira' (distinta de um Ataque Destrutivo) objetiva prioritariamente:", alternativas: ["Apagar diretórios com Ransomware exigindo resgate em criptomoedas.", "Obter conhecimento antecipado da Ordem de Batalha e mapear a infraestrutura de forma inaudível e duradoura, preparando o terreno para ações futuras de sabotagem.", "Desligar remotamente o Firewall Central Operacional do navio.", "Fazer o navio desviar e encalhar por meio de comando cinético remoto.", "Instalar softwares ilegais para demonstrar capacidade técnica."], correta: 1, explicacao: "Exploração Cibernética = Fase de Reconhecimento/Inteligência: mapear a rede, extrair dados de forma silenciosa, identificar vulnerabilidades — tudo sem acionar alarmes. É o alicerce de uma APT (Ameaça Persistente Avançada) que pode durar anos antes de um ataque destrutivo real." },
+    // Q7 – ICI
+    { id: 4009, topico: "Síntese | Infraestrutura Crítica de Informação (ICI)", enunciado: "Segundo a doutrina MB, o que compõe a Infraestrutura Crítica de Informação (ICI) sujeita à proteção prioritária?", alternativas: ["Apenas os computadores da biblioteca recreativa dos marinheiros.", "Somente os HDs localizados em um único prédio da esquadra de defesa.", "Sistemas digitais estatais cuja operação é tão vital que qualquer perturbação geraria efeito cascata com impacto catastrófico financeiro ou físico à soberania nacional naval.", "Todas as empresas de TV a cabo costeiras sem senhas.", "Impressoras da Capitania Nível 3."], correta: 2, explicacao: "ICI = sistemas cuja falha paralisa funções essenciais do Estado ou da força militar. Ex: Centro de Controle de Combate (CCC), comunicações estratégicas, sistemas C2, infraestrutura de energia das bases navais. Indiretamente, inclui também clientes civis críticos (hospitais, energia) conectados pela dualidade do ciberespaço." },
+    // Q8 – Dualidade do Ciberespaço
+    { id: 4010, topico: "Síntese | Dualidade do Ciberespaço e Direito de Guerra", enunciado: "Qual fato a Dualidade do Ciberespaço gera perante ao Direito Internacional de Guerra?", alternativas: ["Os ataques afetam unicamente soldados em bases militares.", "Não há dualismo — o ciberespaço é domínio exclusivamente militar.", "As rotas que transportam ordens sigilosas militares frequentemente compartilham os mesmos cabos e switches civis que trafegam serviços comerciais. Atacá-los pode causar vítimas civis indissociáveis, violando os princípios de proporcionalidade e distinção do Direito Humanitário.", "Senhas biométricas militares tornam o ataque civil impossível.", "A Ciber-Guerra é apenas teórica e nunca causou vítimas civis reais."], correta: 2, explicacao: "O ciberespaço não tem fronteiras claras civil/militar: o mesmo cabo submarino que transporta ordens do Estado-Maior carrega as transações bancárias de civis. Atacar essa infraestrutura compartilhada cria uma zona cinza no Direito Internacional que o Jus in Bello ainda não resolveu completamente." },
+    // Q9 – V/F: APT, Prazos, SDA/SDO, Soberania
+    { id: 4011, topico: "Síntese | APT vs Ransomware, Prazos e Soberania", enunciado: "Analise e selecione a afirmativa CORRETA:\n(I) APT é um hacker impaciente, ruidoso e focado em lucros relâmpagos.\n(II) Os prazos 45 dias (Plano Corretivo da OM) e 60 dias (RAD pela EA) são balizadores doutrinários fixos inegociáveis.\n(III) SDO e SDA atuam medindo estaturas médicas do corpo hospitalar frotista.\n(IV) Soberania Cibernética = direito do Estado de estabelecer regras e proteger sua infraestrutura digital de forma autônoma.", alternativas: ["Apenas I e III estão corretas.", "Apenas II e IV estão corretas.", "Apenas III está correta.", "Todas estão corretas.", "Apenas I está correta."], correta: 1, explicacao: "I (F): APT é PACIENTE, furtiva e silenciosa — pode passar anos sem ser detectada. II (V): Prazos doutrinários inegociáveis da DCTIMARINST-31-07. III (F): SDO = operações navais táticas; SDA = gestão administrativa. IV (V): Soberania Cibernética = autodeterminação regulatória do Estado sobre seu espaço digital nacional." },
+    // Q10 – Relacione colunas: Fases Operacionais GCiber
+    { id: 4012, topico: "Síntese | Fases e Condições Operacionais GCiber", enunciado: "Associe CORRETAMENTE a fase/condição à sua descrição:\n(A) Prevenção → ?  (B) Condição Amarela → ?  (C) Ofensiva → ?  (D) ISIC → ?  (E) PLCONT → ?", alternativas: ["A=Ataque cinético, B=Alerta máximo, C=Monitoramento passivo, D=Sair pela saída de emergência, E=Instalar antivírus.", "A=Escaneamento e varrredura profilática antecipada, B=Vigilância mínima sem indicativo concreto de ameaça real, C=Degradar proativamente poderio inimigo, D=Diretrizes escritas pelo OSIC para conduta dos militares na OM, E=Procedimentos de recuperação para levantar serviços após desastre.", "A=Resposta a incidentes forenses, B=Execução do wipe remoto, C=Backup incremental diário, D=PLCONT de emergência, E=Contratação de CISO externo.", "A=Publicar IPs vulneráveis, B=Condição crítica com infraestrutura comprometida, C=Monitorar passivamente, D=Relatório de RAD, E=Resposta a APT.", "A=Alerta Vermelho, B=Ataque cinético detectado, C=Defesa perimetral passiva, D=Histórico de rede local, E=Missão de combate em mar aberto."], correta: 1, explicacao: "A=Prevenção: varrreduras e scans profiláticos antes da ameaça. B=Condição Amarela: vigilância padrão, sem ameaça palpável confirmada. C=Ofensiva: degradar/destruir capacidade adversária. D=ISIC: conjunto de regras locais escritas pelo OSIC. E=PLCONT: manual de recuperação e continuidade operacional após desastre." },
+    // Q11 – Problema da Atribuição contextual
+    { id: 4013, topico: "Síntese | Atribuição e Botnets — Engodo Tático", enunciado: "Por que é perigoso atribuir imediatamente 'o País X' após a MB receber um DDoS cujo IP de origem aparece geograficamente localizado em Berlim?", alternativas: ["Porque a Alemanha possui tratado de não-atribuição com o Brasil.", "Porque o IP de Berlim pode ser um servidor legítimo hackeado (zumbi de botnet), usado como pivot por um atacante real em outro país. Responsabilizar a Alemanha seria um erro jurídico grave com repercussões diplomáticas.", "Porque o DDoS não é considerado ciberataque formal pelo Direito Internacional.", "Porque IPs de países europeus são protegidos por privacidade do GDPR.", "Porque a DCTIM proíbe responsabilizações internacionais sem autorização do EMA."], correta: 1, explicacao: "Botnets e proxies criam cadeias de pivôs: o atacante real pode estar em qualquer lugar, controlando zumbis ao redor do globo. O IP em Berlim pode ser de uma biblioteca pública alemã comprometida. Atribuição precipitada = erro diplomático grave e armadilha estratégica do atacante." },
+    // Q12 – APT vs Ransomware (preferência estatal)
+    { id: 4014, topico: "Síntese | APT vs Ransomware — Preferência de Atores Estatais", enunciado: "Um Estado adversário — ao realizar Guerra Cibernética de longo prazo — prefere APTs silenciosas ou Ransomware ruidoso? Por quê?", alternativas: ["Prefere Ransomware sempre, pois gera receita imediata com criptomoedas.", "Prefere APTs silenciosas: extraem inteligência estratégica (planos de navios, posicionamento de frotas, tecnologia classificada) por anos sem ser detectadas, preservando o elemento surpresa para ações bélicas futuras.", "Prefere DDoS massivo para demonstrar capacidade e intimidar diplomaticamente.", "Prefere ambos igualmente, pois diversidade de ataques é mais eficaz.", "Prefere Ransomware porque é mais difícil de atribuir que uma APT."], correta: 1, explicacao: "Atores estatais (APTs nacionais) priorizam a exfiltração silenciosa de longo prazo: informação estratégica (projeto de fragata, chaves criptográficas, planos operativos) vale muito mais do que um resgate de Ransomware. O Ransomware alerta e revela a presença; a APT permanece invisível por anos." },
+    // Q13 – RAD vs RAV escopo
+    { id: 4015, topico: "Síntese | Escopo RAD vs RAV — Distinção Doutrinária", enunciado: "Explique para um Comandante por que o RAV e o RAD têm escopos diferentes na doutrina MB:", alternativas: ["São documentos idênticos com nomes diferentes para evitar confusão burocrática.", "O RAV mapeia tecnicamente as vulnerabilidades nos ativos de TI (firewalls, portas abertas, versões desatualizadas). O RAD consolida todos os achados da auditoria ampla — incluindo aspectos humanos, documentais, de treinamento e de governança — determinando prazos e responsabilizações formais.", "O RAV é elaborado pelo Titular e o RAD pelo ADMIN, sendo ambos documentos técnicos.", "O RAD é produzido antes da auditoria como planejamento; o RAV encerra o processo.", "O RAV foca em punições disciplinares; o RAD foca exclusivamente em falhas de TI."], correta: 1, explicacao: "RAV = diagnóstico técnico pontual (vulnerabilidades lógicas nos ativos de TI — brechas, portas abertas, softwares desatualizados). RAD = documento holístico auditorial: avalia governança, pessoal, treinamento, documentação (HRL/ISIC), segurança física e TI — e determina juridicamente as ações corretivas com prazo de 45 dias para a OM." }
+];
+
+let index = 0;
+let score = { correct: 0, incorrect: 0 };
+let history = {};
+const STORAGE_KEY = 'capa_sic_lstm03_history';
+
+function init() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+        history = JSON.parse(saved);
+        score.correct = Object.values(history).filter(r => r.correct).length;
+        score.incorrect = Object.values(history).filter(r => !r.correct).length;
+    }
+    QUESTOES.sort(() => Math.random() - 0.5);
+    document.getElementById('total-q').innerText = QUESTOES.length;
+    updateStats();
+    renderQuestion();
+}
+
+function updateStats() {
+    document.getElementById('score-correct').innerText = score.correct;
+    document.getElementById('score-incorrect').innerText = score.incorrect;
+}
+
+function renderQuestion() {
+    if (index >= QUESTOES.length) {
+        document.getElementById('q-topic').innerText = "Finalizado";
+        document.getElementById('q-text').innerText = "✅ Você completou o Simulado 03 – Síntese Crítica!";
+        document.getElementById('q-options').innerHTML = "";
+        document.getElementById('btn-next').disabled = true;
+        return;
+    }
+    const q = QUESTOES[index];
+    document.getElementById('current-q').innerText = index + 1;
+    document.getElementById('q-topic').innerText = q.topico;
+    document.getElementById('q-text').innerText = q.enunciado;
+    const optionsContainer = document.getElementById('q-options');
+    optionsContainer.innerHTML = '';
+    document.getElementById('q-feedback').className = 'feedback';
+    const prev = history[q.id];
+    q.alternativas.forEach((alt, idx) => {
+        const div = document.createElement('div');
+        div.className = 'option';
+        const letter = String.fromCharCode(65 + idx);
+        div.innerHTML = `<div class="option-letter">${letter}</div><div class="option-text">${alt}</div>`;
+        if (prev) {
+            div.classList.add('disabled');
+            if (idx === q.correta) div.classList.add('correct');
+            if (idx === prev.selected && !prev.correct) div.classList.add('incorrect');
+        } else {
+            div.onclick = () => selectOption(idx);
+        }
+        optionsContainer.appendChild(div);
+    });
+    if (prev) { showFeedback(prev.correct, q.explicacao); document.getElementById('btn-next').disabled = false; }
+    else { document.getElementById('btn-next').disabled = true; }
+    document.getElementById('btn-prev').disabled = index === 0;
+    document.getElementById('progress').style.width = `${(index / QUESTOES.length) * 100}%`;
+}
+
+function selectOption(selectedIdx) {
+    const q = QUESTOES[index];
+    if (history[q.id]) return;
+    const isCorrect = (selectedIdx === q.correta);
+    history[q.id] = { selected: selectedIdx, correct: isCorrect };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    if (isCorrect) score.correct++; else score.incorrect++;
+    updateStats();
+    renderQuestion();
+}
+
+function showFeedback(isCorrect, text) {
+    const box = document.getElementById('q-feedback');
+    document.getElementById('feedback-exp').innerText = text;
+    box.className = 'feedback show ' + (isCorrect ? 'feedback-correct' : 'feedback-incorrect');
+    document.getElementById('feedback-title').innerText = isCorrect ? '✅ Resposta Correta!' : '❌ Resposta Incorreta';
+}
+
+function nextQuestion() { if (index < QUESTOES.length - 1) { index++; renderQuestion(); } }
+function prevQuestion() { if (index > 0) { index--; renderQuestion(); } }
+function resetProgress() {
+    if (!confirm("Resetar todo o progresso do Simulado 03?")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    history = {}; score = { correct: 0, incorrect: 0 }; index = 0;
+    QUESTOES.sort(() => Math.random() - 0.5);
+    updateStats(); renderQuestion();
+}
+
+window.onload = init;
+</script>
+</body>
+</html>
