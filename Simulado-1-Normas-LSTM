@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C-ApA-SIC-2026: SIMULADO 01 – FUNDAMENTAÇÃO</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0d1117; --card: #161b22; --card2: #1c2333;
+            --border: #30363d; --text: #e6edf3; --text2: #8b949e;
+            --accent: #58a6ff; --accent2: #1f6feb;
+            --green: #3fb950; --red: #f85149; --radius: 12px;
+        }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 30px; }
+        .title { font-size: 1.5rem; font-weight: 600; color: var(--accent); }
+        .subtitle { font-size: 0.85rem; color: var(--text2); margin-top: 4px; }
+        .stats { display: flex; gap: 15px; font-size: 0.9rem; color: var(--text2); }
+        .stat-box { background: var(--card); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); }
+        .score-green { color: var(--green); font-weight: bold; }
+        .score-red { color: var(--red); font-weight: bold; }
+        .progress-container { width: 100%; height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 30px; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s ease; }
+        .question-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .badge { display: inline-block; padding: 4px 10px; background: var(--card2); border: 1px solid var(--border); border-radius: 20px; font-size: 0.8rem; color: var(--text2); margin-bottom: 15px; }
+        .enunciado { font-size: 1.1rem; font-weight: 500; margin-bottom: 25px; color: #fff; }
+        .options { display: flex; flex-direction: column; gap: 12px; }
+        .option { background: var(--card2); border: 1px solid var(--border); padding: 15px 20px; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 15px; font-size: 1rem; }
+        .option:hover:not(.disabled) { border-color: var(--accent); transform: translateX(5px); }
+        .option.correct { border-color: var(--green); background: rgba(63,185,80,0.1); }
+        .option.incorrect { border-color: var(--red); background: rgba(248,81,73,0.1); }
+        .option.disabled { cursor: default; opacity: 0.8; }
+        .option-letter { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: var(--card); border-radius: 50%; font-weight: bold; font-size: 0.9rem; color: var(--text2); border: 1px solid var(--border); flex-shrink: 0; }
+        .option.correct .option-letter { color: var(--green); border-color: var(--green); }
+        .option.incorrect .option-letter { color: var(--red); border-color: var(--red); }
+        .feedback { margin-top: 25px; padding: 20px; border-radius: 8px; display: none; background: var(--card2); border-left: 4px solid var(--accent); }
+        .feedback.show { display: block; animation: fadeIn 0.4s ease; }
+        .feedback-title { font-weight: bold; margin-bottom: 10px; font-size: 1.1rem; }
+        .feedback-correct .feedback-title { color: var(--green); }
+        .feedback-incorrect .feedback-title { color: var(--red); }
+        .explanation { color: var(--text); font-size: 0.95rem; line-height: 1.5; }
+        .controls { display: flex; justify-content: space-between; margin-top: 30px; }
+        .btn { padding: 12px 24px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover:not(:disabled) { background: var(--accent2); }
+        .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover:not(:disabled) { border-color: var(--text2); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div>
+            <div class="title">SIMULADO 01 – FUNDAMENTAÇÃO</div>
+            <div class="subtitle">C-ApA-SIC-2026 | LSTM-Simulator v1.0 | EMA-416 e DGMM-0540</div>
+        </div>
+        <div class="stats">
+            <div class="stat-box">Q <span id="current-q">1</span>/<span id="total-q">0</span></div>
+            <div class="stat-box">✅ <span class="score-green" id="score-correct">0</span></div>
+            <div class="stat-box">❌ <span class="score-red" id="score-incorrect">0</span></div>
+        </div>
+    </div>
+    <div class="progress-container"><div class="progress-bar" id="progress"></div></div>
+    <div style="text-align:right; margin-bottom:20px;">
+        <button class="btn btn-secondary" onclick="resetProgress()" style="padding:8px 16px;font-size:0.9rem;">Resetar Histórico</button>
+    </div>
+    <div id="quiz-container">
+        <div class="question-card">
+            <div class="badge" id="q-topic">Tópico</div>
+            <div class="enunciado" id="q-text">Carregando...</div>
+            <div class="options" id="q-options"></div>
+            <div class="feedback" id="q-feedback">
+                <div class="feedback-title" id="feedback-title">Resultado</div>
+                <div class="explanation" id="feedback-exp"></div>
+            </div>
+        </div>
+        <div class="controls">
+            <button class="btn btn-secondary" id="btn-prev" onclick="prevQuestion()" disabled>← Anterior</button>
+            <button class="btn btn-primary" id="btn-next" onclick="nextQuestion()" disabled>Próxima →</button>
+        </div>
+    </div>
+</div>
+<script>
+const QUESTOES = [
+    // Q1 – Pergunta Direta convertida em múltipla escolha
+    { id: 2001, topico: "Fund. | Informação Digital (EMA-416)", enunciado: "Com base no EMA-416, qual alternativa descreve com maior precisão o conceito de 'Informação Digital'?", alternativas: ["Qualquer arquivo salvo em disco rígido, independentemente de significado.", "Conjunto de dados brutos sem processamento armazenados em servidor.", "Conjunto de dados codificados sob forma binária, dos quais humanos extraem significado interpretável por meio de dispositivos computacionais.", "Sequência de pulsos elétricos transmitidos por fibra ótica sem formato definido.", "Apenas os e-mails e documentos de texto trafegados na RECIM."], correta: 2, explicacao: "EMA-416 define Informação Digital como dados codificados em formato binário aos quais se atribui significado por inter-relação e contexto. A simples existência do dado bruto não configura informação." },
+    { id: 2002, topico: "Fund. | Requisitos Básicos (DGMM-0540)", enunciado: "Quais são os Quatro Requisitos Básicos de Segurança da Informação segundo a DGMM-0540?", alternativas: ["Confidencialidade, Veracidade, Redundância e Autenticidade.", "Confidencialidade, Integridade, Disponibilidade e Autenticidade (C-I-D-A).", "Sigilo, Disponibilidade, Confiança e Auditabilidade.", "Criptografia, Senha Forte, Backup e Firewall.", "Privacidade, Integridade, Resiliência e Autenticação."], correta: 1, explicacao: "A DGMM-0540 e o EMA-416 enumeram os Quatro Requisitos Básicos de SIC como: Confidencialidade, Integridade, Disponibilidade e Autenticidade. São os pilares doutrinários da Segurança da Informação na MB." },
+    { id: 2003, topico: "Fund. | Sistemas Digitais (EMA-416)", enunciado: "Como a Marinha do Brasil define os Sistemas Digitais Operativos (SDO) em oposição aos SDA?", alternativas: ["São sistemas de gestão administrativa e financeira da MB.", "São sistemas de backup e recuperação de desastres da RECIM.", "São sistemas projetados e operados exclusivamente para fins de combate, operações navais ou em benefício direto dessas operações.", "São sistemas de comunicação civil utilizados em portos e repartições logísticas.", "São sistemas de monitoramento ambiental e climático embarcados em fragatas."], correta: 2, explicacao: "SDO (Sistemas Digitais Operativos) são concebidos para emprego em operações navais militares ou em apoio a elas (Ex: radar, sonar, controle de tiro). Diferenciam-se dos SDA (burocráticos/administrativos) e SDPE (propósito especial)." },
+    // Q2 – Disponibilidade
+    { id: 2004, topico: "Fund. | Disponibilidade (DGMM-0540)", enunciado: "Segundo a DGMM-0540, o conceito técnico de 'Disponibilidade' traduz-se como:", alternativas: ["O poder da Marinha de manter sistemas civis online gratuitamente.", "A capacidade da informação digital estar acessível a um usuário autorizado no momento em que ele necessitar.", "A segurança física das catracas de entrada da Base Naval.", "A proibição completa do acesso à internet externa pelos cabos marítimos.", "A garantia da autoria jurídica de quem clicou no terminal logístico federal."], correta: 1, explicacao: "Disponibilidade: a informação estar pronta e acessível para quem tem o direito de acessá-la, no momento necessário. Um servidor fora do ar viola este pilar." },
+    // Q3 – Ataques Ativos
+    { id: 2005, topico: "Fund. | Classificação de Ataques (Aula 03)", enunciado: "Uma das definições técnicas para 'Ataques Ativos' às informações digitais na RECIM estabelece que eles:", alternativas: ["Resultam unicamente numa interceptação sem alterar os bits do remetente.", "São realizados exclusivamente por criminosos estrangeiros fora do raio geográfico.", "Envolvem interrupção, modificação ou fabricação de informações, ou alteração do próprio sistema.", "Engendram apenas exclusão de senhas de boot em Sistemas Administrativos.", "Funcionam bloqueando os cartões militares das catracas em portões primários."], correta: 2, explicacao: "Ataques Ativos modificam, interrompem ou fabricam dados/informações no sistema alvo. Diferem dos Passivos (apenas interceptação sem modificação)." },
+    // Q4 – Wipe
+    { id: 2006, topico: "Fund. | Wipe / Eliminação Segura (DGMM-0540)", enunciado: "O ato do 'Wipe' em informática pericial e forense destina-se normativamente a:", alternativas: ["Atualizar as bases do antivírus do CTIR.mar centralmente.", "Sobrescrever o conteúdo magnético ou sólido com dados aleatórios em múltiplas passadas, garantindo que dados sigilosos sejam irrecuperáveis.", "Ocultar as linhas de roteamento do pacote HTTP na saída do NAT.", "Criar pendrives restritos e blindados operacionais da Frota Central do RJ.", "Renomear arquivos com extensão secreta de ocultação lógica de pastas."], correta: 1, explicacao: "Wipe (ex: Eraser no Windows, wipe no Linux) sobrescreve os setores físicos da mídia. O simples 'Del' do sistema apenas remove o ponteiro do arquivo, deixando os dados fisicamente presentes e recuperáveis." },
+    // Q5 – HRL Parte I
+    { id: 2007, topico: "Fund. | HRL Estrutura (DGMM-0540)", enunciado: "Sobre o Histórico da Rede Local (HRL), as Normas estatuem que ele é dividido em três partes. A Parte I diz respeito a:", alternativas: ["Somente senhas dos Oficiais da Marinha catalogadas.", "Apenas orçamento federal financeiro que compra as máquinas.", "A descrição rigorosa e pormenorizada da infraestrutura lógica e física da OM (Topologia da Rede).", "Laudos e sindicâncias de roubos processados pelo MP-Militar.", "Os backups automáticos semanais listados pelo Administrador Civil."], correta: 2, explicacao: "HRL – Parte I: Descrição da Rede (Topologia física e lógica, ativos, endereçamento IP). Parte II: Atividades de Rotina. Parte III: Incidentes de SIC." },
+    // Q6 – RCC Nível 3
+    { id: 2008, topico: "Fund. | Recursos Computacionais Críticos Nível 3", enunciado: "Um 'Recurso Computacional Crítico – Nível 3' descreve ativos que:", alternativas: ["Operam sob rigorosa ameaça e exfiltrações diretas de dados Ultrassecretos.", "Quando atingidos, não causam prejuízo direto à SIC ou à rede, mas permitem que ameaças escalem até alvos maiores.", "Foram extraviados da responsabilidade contábil física da OM.", "Estão sob uso restritivo do Comandante Supremo da Esquadra.", "Controlam tráfego aéreo radarizado de aeronaves navais táticas."], correta: 1, explicacao: "RCC Nível 3: ativos de menor criticidade direta, mas que, se comprometidos, podem servir de trampolim para alvos de maior valor (Nível 1 ou 2). Ex: uma impressora de rede acessível." },
+    // Q7 – Engenharia Social
+    { id: 2009, topico: "Fund. | Engenharia Social (EMA-416)", enunciado: "Segundo o EMA-416, a Engenharia Social explora fatores mentais do alvo para violar protocolos. Qual grupo define corretamente os instintos explorados?", alternativas: ["Ódio e raiva política partidária orgânica.", "Conhecimentos profundos de Javascript ou C++ voltados para o Phishing.", "Curiosidade, confiança, medo/urgência e a vontade de ajudar.", "Complexo de superioridade aliado a tédio de funções noturnas.", "Medo do CTIM confiscar senhas corporativas."], correta: 2, explicacao: "Engenharia Social abusa do vetor humano: emoções como urgência (corra, é o Comandante!), curiosidade (veja este link), confiança (sou da TI, preciso da sua senha) e bondade (pode me ajudar?). Esses gatilhos sobrepõem qualquer firewall técnico." },
+    // Q8 – CTIM
+    { id: 2010, topico: "Fund. | Papel do CTIM (Estrutura MB)", enunciado: "A função precípua do Centro de Tecnologia da Informação da Marinha (CTIM) enquanto Executor Técnico consiste em:", alternativas: ["Assessorar Ministros sobre verbas do Tribunal de Contas da MB.", "Elaborar e aprovar as DCTIMARINST como emissor chefe supremo.", "Executar o monitoramento contínuo da RECIM, aplicar criptologias, realizar varreduras de vulnerabilidades e gerir a Defesa Cibernética operacional.", "Ministrar castigos em Tribunais Militares contra invasores navais.", "Somente distribuir fitas LTO de Backup às O.Ms civis."], correta: 2, explicacao: "O CTIM é o Órgão de Execução Operacional: quem roda os scripts de varredura, monitora os logs em tempo real, sustenta o CTIR.mar e aplica as cryptochaves certificadas. A DCTIM normatiza; o CTIM executa." },
+    // Q9 – V ou F convertido: Homologação, SDA, Autenticidade, PLCONT
+    { id: 2011, topico: "Fund. | Homologação e Autenticidade (EMA-416)", enunciado: "Analise as afirmações e selecione a que está CORRETA quanto à doutrina da MB:\n(I) Homologação é processo validativo pelo qual a MB reconhece o laudo de segurança de um sistema, permitindo seu uso na RECIM.\n(II) SDAs referem-se unicamente aos Mísseis Inteligentes de Fragata.\n(III) Autenticidade é a capacidade de garantir que a origem da informação é exatamente aquela identificada.\n(IV) O PLCONT isenta o Titular de zelar pelo compliance da ISIC.", alternativas: ["Apenas II e IV estão corretas.", "Apenas I e III estão corretas.", "Todas as afirmativas estão corretas.", "Apenas III está correta.", "Apenas II está correta."], correta: 1, explicacao: "I (V): Homologação = validação oficial para uso na RECIM. II (F): SDA são sistemas burocráticos/administrativos, não armas. III (V): Autenticidade vincula inquestionavelmente o remetente. IV (F): O PLCONT é ferramenta de contingência; não isenta responsabilidades ordinárias do Titular." },
+    // Q10 – Relacione Colunas: Cargos
+    { id: 2012, topico: "Fund. | Atribuições de Cargos (DGMM-0540)", enunciado: "Sobre a estrutura de cargos SIC da MB, assinale a alternativa que associa CORRETAMENTE o cargo à sua atribuição principal:\n(A) Elabora os rascunhos da ISIC e assessora o Comando sobre riscos de SIC.\n(B) Configura o Active Directory, instala senhas do servidor de e-mail e aplica regras de proxy.\n(C) Carrega a responsabilidade legal máxima de cumprimento das normas e nomeia cargos por Portaria.\n(D) Realiza monitoramento nacional e resposta a incidentes cibernéticos na RECIM.", alternativas: ["A=ADMIN, B=OSIC, C=CTIM, D=Titular.", "A=Titular, B=CTIR.mar, C=OSIC, D=ADMIN.", "A=OSIC, B=ADMIN, C=Titular, D=CTIR.mar.", "A=CTIR.mar, B=Titular, C=ADMIN, D=OSIC.", "A=OSIC, B=CTIR.mar, C=ADMIN, D=Titular."], correta: 2, explicacao: "A=OSIC (elabora ISIC e assessora). B=ADMIN (configura Active Directory, proxy e servidores). C=Titular da OM (responsabilidade máxima e nomeação por Portaria). D=CTIR.mar (monitoramento nacional e resposta a incidentes)." },
+    // Q11 – Discursiva: Segurança da Informação vs Segurança Cibernética
+    { id: 2013, topico: "Fund. | SegInfo vs SegCiber (EMA-416)", enunciado: "A Doutrina de TI da MB distingue 'Segurança da Informação' de 'Segurança Cibernética'. Qual afirmação descreve CORRETAMENTE essa distinção?", alternativas: ["São termos sinônimos e intercambiáveis na doutrina MB.", "Segurança da Informação protege apenas os papéis físicos impresso; Segurança Cibernética protege apenas os servidores.", "Segurança da Informação é o conjunto amplo de medidas para proteger a informação em todas as formas; Segurança Cibernética é seu subconjunto focado na proteção do espaço digital (redes, sistemas e conectividade).", "Segurança Cibernética é responsabilidade do COTIM; Segurança da Informação é da DGMM.", "Segurança da Informação não abrange documentos em papel, apenas dados digitais."], correta: 2, explicacao: "Segurança da Informação: escopo amplo — protege a informação seja em papel, conversa, hardware ou rede. Segurança Cibernética: subconjunto focado no CyberSpace — a infraestrutura digital, redes e sistemas interconectados. (EMA-416, arts. 1.24 e 1.26)" },
+    // Q12 – HRL partes
+    { id: 2014, topico: "Fund. | HRL – As Três Partes (DGMM-0540)", enunciado: "O Histórico da Rede Local (HRL) é dividido em 3 partes obrigatórias. Qual alternativa descreve CORRETAMENTE as finalidades específicas da Parte II e da Parte III?", alternativas: ["Parte II = Topologia de rede; Parte III = Orçamento de TI.", "Parte II = Lista de usuários e senhas; Parte III = Inventário de hardware.", "Parte II = Registro de atividades de rotina do ADMIN (atualizações, configurações); Parte III = Registro formal de Incidentes de SIC ocorridos na OM.", "Parte II = Plano de Contingência (PLCONT); Parte III = ISIC vigente.", "Parte II = Laudos forenses do CTIM; Parte III = Relatório RAD."], correta: 2, explicacao: "HRL Parte I: Descrição da infraestrutura (Topologia). Parte II: Livro de atividades ordinárias do ADMIN. Parte III: Log de Ocorrências/Incidentes de SIC — a mais crítica juridicamente, usada em IPMs e auditorias." },
+    // Q13 – Mesa e Tela Limpas
+    { id: 2015, topico: "Fund. | Mesa e Tela Limpas (DGMM-0540 art. 8.9)", enunciado: "A política de 'Mesa e Tela Limpas' impõe ao militar em ambientes que tramitem informações sigilosas:", alternativas: ["Apenas limpar a área de trabalho física toda sexta-feira para a inspeção.", "Manter a tela do computador visível para colegas como padrão de transparência institucional.", "Recolher papéis sigilosos das superfícies ao se ausentar e ativar o bloqueio de tela (Win+L) do sistema operacional, impedindo o acesso visual por pessoas sem Need-to-Know.", "Impedir que visitantes entrem na sala mesmo que acompanhados de oficial responsável.", "Desligar o computador sempre que sair, mesmo por 1 minuto."], correta: 2, explicacao: "Mesa Limpa: recolher papéis, agendas e mídias físicas sigilosas ao se ausentar. Tela Limpa: bloquear o terminal (Win+L ou logoff) ao sair da estação. Objetivo: impedir acesso visual ou físico por pessoas sem credencial adequada." }
+];
+
+let index = 0;
+let score = { correct: 0, incorrect: 0 };
+let history = {};
+const STORAGE_KEY = 'capa_sic_lstm01_history';
+
+function init() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+        history = JSON.parse(saved);
+        score.correct = Object.values(history).filter(r => r.correct).length;
+        score.incorrect = Object.values(history).filter(r => !r.correct).length;
+    }
+    QUESTOES.sort(() => Math.random() - 0.5);
+    document.getElementById('total-q').innerText = QUESTOES.length;
+    updateStats();
+    renderQuestion();
+}
+
+function updateStats() {
+    document.getElementById('score-correct').innerText = score.correct;
+    document.getElementById('score-incorrect').innerText = score.incorrect;
+}
+
+function renderQuestion() {
+    if (index >= QUESTOES.length) {
+        document.getElementById('q-topic').innerText = "Finalizado";
+        document.getElementById('q-text').innerText = "✅ Você completou o Simulado 01 – Fundamentação!";
+        document.getElementById('q-options').innerHTML = "";
+        document.getElementById('btn-next').disabled = true;
+        return;
+    }
+    const q = QUESTOES[index];
+    document.getElementById('current-q').innerText = index + 1;
+    document.getElementById('q-topic').innerText = q.topico;
+    document.getElementById('q-text').innerText = q.enunciado;
+    const optionsContainer = document.getElementById('q-options');
+    optionsContainer.innerHTML = '';
+    document.getElementById('q-feedback').className = 'feedback';
+    const prev = history[q.id];
+    q.alternativas.forEach((alt, idx) => {
+        const div = document.createElement('div');
+        div.className = 'option';
+        const letter = String.fromCharCode(65 + idx);
+        div.innerHTML = `<div class="option-letter">${letter}</div><div class="option-text">${alt}</div>`;
+        if (prev) {
+            div.classList.add('disabled');
+            if (idx === q.correta) div.classList.add('correct');
+            if (idx === prev.selected && !prev.correct) div.classList.add('incorrect');
+        } else {
+            div.onclick = () => selectOption(idx);
+        }
+        optionsContainer.appendChild(div);
+    });
+    if (prev) { showFeedback(prev.correct, q.explicacao); document.getElementById('btn-next').disabled = false; }
+    else { document.getElementById('btn-next').disabled = true; }
+    document.getElementById('btn-prev').disabled = index === 0;
+    document.getElementById('progress').style.width = `${(index / QUESTOES.length) * 100}%`;
+}
+
+function selectOption(selectedIdx) {
+    const q = QUESTOES[index];
+    if (history[q.id]) return;
+    const isCorrect = (selectedIdx === q.correta);
+    history[q.id] = { selected: selectedIdx, correct: isCorrect };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    if (isCorrect) score.correct++; else score.incorrect++;
+    updateStats();
+    renderQuestion();
+}
+
+function showFeedback(isCorrect, text) {
+    const box = document.getElementById('q-feedback');
+    document.getElementById('feedback-exp').innerText = text;
+    box.className = 'feedback show ' + (isCorrect ? 'feedback-correct' : 'feedback-incorrect');
+    document.getElementById('feedback-title').innerText = isCorrect ? '✅ Resposta Correta!' : '❌ Resposta Incorreta';
+}
+
+function nextQuestion() { if (index < QUESTOES.length - 1) { index++; renderQuestion(); } }
+function prevQuestion() { if (index > 0) { index--; renderQuestion(); } }
+function resetProgress() {
+    if (!confirm("Resetar todo o progresso do Simulado 01?")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    history = {}; score = { correct: 0, incorrect: 0 }; index = 0;
+    QUESTOES.sort(() => Math.random() - 0.5);
+    updateStats(); renderQuestion();
+}
+
+window.onload = init;
+</script>
+</body>
+</html>
