@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C-ApA-SIC-2026: SIMULADO 02 – APLICAÇÃO ANALÍTICA</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0d1117; --card: #161b22; --card2: #1c2333;
+            --border: #30363d; --text: #e6edf3; --text2: #8b949e;
+            --accent: #d29922; --accent2: #b08800;
+            --green: #3fb950; --red: #f85149; --radius: 12px;
+        }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 30px; }
+        .title { font-size: 1.5rem; font-weight: 600; color: var(--accent); }
+        .subtitle { font-size: 0.85rem; color: var(--text2); margin-top: 4px; }
+        .stats { display: flex; gap: 15px; font-size: 0.9rem; color: var(--text2); }
+        .stat-box { background: var(--card); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); }
+        .score-green { color: var(--green); font-weight: bold; }
+        .score-red { color: var(--red); font-weight: bold; }
+        .progress-container { width: 100%; height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 30px; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s ease; }
+        .question-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px; margin-bottom: 20px; }
+        .badge { display: inline-block; padding: 4px 10px; background: var(--card2); border: 1px solid var(--border); border-radius: 20px; font-size: 0.8rem; color: var(--text2); margin-bottom: 15px; }
+        .enunciado { font-size: 1.1rem; font-weight: 500; margin-bottom: 25px; color: #fff; white-space: pre-line; }
+        .options { display: flex; flex-direction: column; gap: 12px; }
+        .option { background: var(--card2); border: 1px solid var(--border); padding: 15px 20px; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: flex-start; gap: 15px; font-size: 1rem; }
+        .option:hover:not(.disabled) { border-color: var(--accent); transform: translateX(5px); }
+        .option.correct { border-color: var(--green); background: rgba(63,185,80,0.1); }
+        .option.incorrect { border-color: var(--red); background: rgba(248,81,73,0.1); }
+        .option.disabled { cursor: default; opacity: 0.8; }
+        .option-letter { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: var(--card); border-radius: 50%; font-weight: bold; font-size: 0.9rem; color: var(--text2); border: 1px solid var(--border); flex-shrink: 0; }
+        .option.correct .option-letter { color: var(--green); border-color: var(--green); }
+        .option.incorrect .option-letter { color: var(--red); border-color: var(--red); }
+        .feedback { margin-top: 25px; padding: 20px; border-radius: 8px; display: none; background: var(--card2); border-left: 4px solid var(--accent); }
+        .feedback.show { display: block; animation: fadeIn 0.4s ease; }
+        .feedback-title { font-weight: bold; margin-bottom: 10px; font-size: 1.1rem; }
+        .feedback-correct .feedback-title { color: var(--green); }
+        .feedback-incorrect .feedback-title { color: var(--red); }
+        .explanation { color: var(--text); font-size: 0.95rem; line-height: 1.5; }
+        .controls { display: flex; justify-content: space-between; margin-top: 30px; }
+        .btn { padding: 12px 24px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover:not(:disabled) { background: var(--accent2); }
+        .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover:not(:disabled) { border-color: var(--text2); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div>
+            <div class="title">SIMULADO 02 – APLICAÇÃO ANALÍTICA</div>
+            <div class="subtitle">C-ApA-SIC-2026 | LSTM-Simulator v1.0 | Causas, Prazos e Forense</div>
+        </div>
+        <div class="stats">
+            <div class="stat-box">Q <span id="current-q">1</span>/<span id="total-q">0</span></div>
+            <div class="stat-box">✅ <span class="score-green" id="score-correct">0</span></div>
+            <div class="stat-box">❌ <span class="score-red" id="score-incorrect">0</span></div>
+        </div>
+    </div>
+    <div class="progress-container"><div class="progress-bar" id="progress"></div></div>
+    <div style="text-align:right; margin-bottom:20px;">
+        <button class="btn btn-secondary" onclick="resetProgress()" style="padding:8px 16px;font-size:0.9rem;">Resetar Histórico</button>
+    </div>
+    <div id="quiz-container">
+        <div class="question-card">
+            <div class="badge" id="q-topic">Tópico</div>
+            <div class="enunciado" id="q-text">Carregando...</div>
+            <div class="options" id="q-options"></div>
+            <div class="feedback" id="q-feedback">
+                <div class="feedback-title" id="feedback-title">Resultado</div>
+                <div class="explanation" id="feedback-exp"></div>
+            </div>
+        </div>
+        <div class="controls">
+            <button class="btn btn-secondary" id="btn-prev" onclick="prevQuestion()" disabled>← Anterior</button>
+            <button class="btn btn-primary" id="btn-next" onclick="nextQuestion()" disabled>Próxima →</button>
+        </div>
+    </div>
+</div>
+<script>
+const QUESTOES = [
+    // Q1.1 – Prazos do RAD
+    { id: 3001, topico: "Aplic. | Prazos do RAD (DCTIMARINST-31-07)", enunciado: "A DCTIM emitiu oficialmente um RAD contendo achados graves contra a O.M. Qual o prazo e o documento que o Titular deve formalizar em resposta?", alternativas: ["30 dias para apresentar um relatório técnico de vulnerabilidades (RAV).", "60 dias para o Plano de Ações Corretivas, já que a EA demorou 60 dias para emitir.", "Até 45 dias para apresentar o Plano de Ações Corretivas após o recebimento do RAD.", "7 dias úteis para uma declaração de ciência e nenhum plano formal é exigido.", "Não há prazo definido, sendo o Titular livre para responder conforme a disponibilidade."], correta: 2, explicacao: "Prazos doutrinários inegociáveis: a EA tem até 60 dias após a fase local para emitir o RAD. A OM auditada tem até 45 dias após o recebimento do RAD para apresentar seu Plano de Ações Corretivas." },
+    // Q1.2 – Fluxo de reporte de incidente
+    { id: 3002, topico: "Aplic. | Fluxo de Reporte de Incidente (DGMM-0540)", enunciado: "Um OSIC detectou violação de senha Nível 2 na Ajudância. Para quem ele reporta primariamente e em qual instrumento deve averbar o ocorrido?", alternativas: ["Diretamente ao CTIM por e-mail, sem necessidade de averbação formal local.", "Ao Titular da OM imediatamente, averbando o incidente na Parte III do HRL.", "À Polícia Federal, por tratar-se de crime digital.", "À DCTIM diretamente, aguardando orientação antes de comunicar o Titular.", "No RAV, que é o documento de registro de incidentes."], correta: 1, explicacao: "O fluxo correto: 1) Reporte imediato ao Titular da OM. 2) Averbamento na Parte III do HRL (Log de Incidentes). 3) Quando necessário, escalar à DCTIM e COMIMSUP. Omitir o reporte ao Titular é infração disciplinar." },
+    // Q1.3 – MDM e Remote Wipe
+    { id: 3003, topico: "Aplic. | MDM e Remote Wipe (DGMM-0540 art. 12)", enunciado: "O uso de dispositivos funcionais sob MDM inclui a funcionalidade de Remote Wipe. Qual a causa e consequência que justifica essa técnica agressiva para dispositivos em trânsito fora da OM?", alternativas: ["Porque os dados de backup em nuvem ficam mais rápidos com o wipe remoto ativo.", "Porque a violação física do dispositivo furtado, sem wipe, expõe informações sigilosas a adversários que podem extrair dados mesmo com criptografia básica.", "Porque o protocolo MDM exige que todos os dispositivos sejam apagados ao retornar à OM.", "Porque o CTIM monitora o conteúdo dos celulares e apaga remotamente para privacidade do militar.", "Porque celulares consomem bateria em standby e o wipe economiza energia."], correta: 1, explicacao: "O Remote Wipe existe porque dispositivos furtados ou perdidos em zonas hostis podem conter informações sigilosas. Ativado remotamente via MDM, apaga todos os dados antes que o adversário consiga quebrar a criptografia ou extrair via data recovery." },
+    // Q2 – Backup Diferencial
+    { id: 3004, topico: "Aplic. | Backup Diferencial (DCTIMARINST 30-19)", enunciado: "Qual a consequência tática do emprego do Backup Diferencial em relação ao Backup Full?", alternativas: ["Causa lentidão extrema e destrói o arquivo C: da máquina master da RECIM.", "Permite apagar permanentemente versões antigas sem guardar histórico.", "Copia exclusivamente todos os arquivos criados ou modificados desde o último Backup Full, economizando espaço e tempo diários.", "Gera bloqueios físicos nos terminais SDA, proibindo logons sem VPN.", "Provoca incidentes graves passíveis de auditoria pelo CTIM."], correta: 2, explicacao: "Backup Diferencial: copia tudo modificado DESDE o último Full. Vantagem: restauração mais simples (apenas Full + último Diferencial). Contraste: Incremental copia só o modificado desde o último backup de qualquer tipo, exigindo toda a cadeia para restaurar." },
+    // Q3 – Wi-Fi caseiro na OM
+    { id: 3005, topico: "Aplic. | Roteadores Não Homologados na RECIM", enunciado: "Uma auditoria inopinada encontrou roteadores Wi-Fi caseiros conectados ao cabeamento Cat6 oficial sem autorização. Do ponto de vista de causa e efeito, essa atitude ocasiona:", alternativas: ["Fortalecimento técnico gratuito da Base com zero gastos, aprovado nos ritos de RAD.", "A quebra do isolamento da RECIM, introduzindo backdoors pelo ar e expondo o perímetro criptográfico a qualquer pessoa nas imediações sem Need-to-Know.", "Apenas lentidão de banda sem afetar a confidencialidade ou a tríade CID.", "Uma infração levíssima de postura física que não gera constatação no RAD.", "Queima imediata das placas mães Nível 3."], correta: 1, explicacao: "Um roteador Wi-Fi caseiro (WPA2 fraco ou WPS ativo) conectado à rede oficial cria uma ponte entre a RECIM classificada e o ambiente externo irrestrito. Qualquer pessoa na rua pode tentar acessar a rede interna, anulando anos de Defesa em Profundidade." },
+    // Q4 – Fase Remota (D-30)
+    { id: 3006, topico: "Aplic. | Fase Remota D-30 (DCTIMARINST-31-07)", enunciado: "O rito doutrinário das Auditorias Programadas estipula uma obrigação documental à OM 30 dias antes (D-30). O resultado gerencial dessa Fase Remota é:", alternativas: ["A permissão do Titular negar entrada da EA por indisponibilidade da guarda.", "Apagar logs de infrações para limpar o histórico e ganhar melhor avaliação.", "Remeter à EA um panorama estrutural (Lista de Verificação, Topologia, ISIC e HRL criptografados), permitindo que a equipe planeje focando as falhas antes da visita presencial.", "Enviar as peças velhas de memória RAM para o almoxarifado logístico do CTIM.", "Permitir acesso root irrestrito ao OSIC nos servidores do CTIM."], correta: 2, explicacao: "A Fase Remota (D-30): A OM envia, via criptografia homologada, a Lista de Verificação Preliminar, ISIC vigente, HRL e topologia de rede à EA. Isso permite que os auditores identifiquem discrepâncias antes de pisarem na OM, otimizando a Fase Local." },
+    // Q5 – Senhas BIOS vs Boot
+    { id: 3007, topico: "Aplic. | Senhas BIOS vs Boot (DGMM-0540)", enunciado: "Qual a razão técnica para impor senhas DISTINTAS de BIOS (Setup) e de Boot (S.O) nas Estações de Trabalho?", alternativas: ["Para burocratizar com duplo fator sem funcionalidade real.", "Sem senha de Windows o computador explodiria num ataque cinético.", "Para que todos os militares assinem TRI em cadernos biográficos.", "Para impedir que o usuário dê boot por pendrive infectado (BIOS bloqueada pelo ADMIN) e que o ADMIN leia os arquivos do usuário (Boot do S.O. exclusivo do usuário) — segregando responsabilidades e atendendo ao Privilégio Mínimo.", "Para os Diretores do CTIM monitorarem por câmeras físicas os logons."], correta: 3, explicacao: "Segregação de senhas: BIOS/Setup sob posse exclusiva do ADMIN (impede boot por mídia externa infectada). Boot do S.O. exclusivo do usuário (impede que o ADMIN acesse os arquivos pessoais do militar). Princípio do Privilégio Mínimo aplicado ao hardware." },
+    // Q6 – Dispositivos Removíveis
+    { id: 3008, topico: "Aplic. | Controle de Mídias Removíveis (DGMM-0540)", enunciado: "A ISIC sobre dispositivos removíveis (pendrives, HDs externos) impõe como regra imutável na O.M:", alternativas: ["Permite-se o trânsito livre por serem documentos sem restrições severas.", "Pendrives e discos móveis submetem-se a registro pelo OSIC/ADMIN, necessitam de homologação e passam por rotina de Wipe ao atingirem fim de vida ou reuso; proibindo USBs civis não autorizados.", "Restringe apenas os Oficiais Superiores por decisão do Titular.", "Submete os marinheiros ao teste prático com Wipe Linux em auditorias diárias.", "Serve exclusivamente para evitar Phishing por links maliciosos."], correta: 1, explicacao: "Toda mídia removível que entra na OM deve ser registrada nominalmente, ter uso autorizado e, ao final de sua vida útil ou antes de reuso, passar por Wipe seguro. Mídias de uso pessoal externas são vedadas na RECIM." },
+    // Q7 – Engenharia Social eficácia
+    { id: 3009, topico: "Aplic. | Engenharia Social – Eficácia (EMA-416)", enunciado: "A Engenharia Social é eficaz porque:", alternativas: ["Sobrepuja firewalls robustos sem nenhum custo técnico, explorando apenas a psicologia humana com telefonemas ardilosos, e-mails falsos ou presença física enganosa.", "Requer ataques DDoS massivos de milhões de botnets simultaneamente.", "Necessita acesso físico ao rack principal de servidores da OM.", "Exige criptomoedas e roubo direto dos cofres da Base.", "Usa exclusivamente malwares de kernel nível 0 para contornar antivírus."], correta: 0, explicacao: "Engenharia Social é o ataque de maior custo-benefício: sem necessidade de código sofisticado, o atacante usa apenas persuasão (urgência, confiança, medo) para que o próprio usuário entregue senhas, abra links ou conceda acessos — contornando qualquer firewall técnico." },
+    // Q8 – Cadeia de Custódia (não desligar)
+    { id: 3010, topico: "Aplic. | Cadeia de Custódia – RAM (DCTIMARINST-31-02B)", enunciado: "Por que é proibido desligar uma máquina flagrada em crime digital da forma convencional (Start → Desligar)?", alternativas: ["Porque o desligamento apaga os históricos e cache da RAM contendo arquivos maliciosos em estado ativo, destruindo evidências voláteis irrecuperáveis para o IPM.", "Para o computador continuar transmitindo sinal à internet aberta.", "Para evitar desgaste elétrico da peça eletrônica.", "Permite copiar o HD apenas com CD-ROM lento.", "Porque o Oficial Maior da MB não autoriza o desligamento."], correta: 0, explicacao: "A RAM é volátil: desligar o PC apaga instantaneamente processos ativos, credenciais injetadas, rootkits em memória e conexões abertas — evidências cruciais para perícia forense. O procedimento correto é isolar, fotografar e executar dump de RAM antes de qualquer intervenção." },
+    // Q9 – V/F convertido
+    { id: 3011, topico: "Aplic. | Compartilhamento e Furto de Dispositivo", enunciado: "Analise e selecione a afirmativa CORRETA:\n(I) Criar pasta compartilhada local no C:\\ da ET para acesso de colegas é prática proibida; dados críticos devem estar em File Servers autenticados.\n(II) Visitantes em zonas Nível 2 dispensam registro de acesso se forem parentes de militares.\n(III) O furto de notebook funcional resulta em vazamento fatal somente se não houver FDE e Remote Wipe ativos.\n(IV) Ameaças Ativas Internas limitam-se a ataques de Ransomware externos.", alternativas: ["Apenas II e IV estão corretas.", "Apenas I e III estão corretas.", "Apenas III está correta.", "Todas estão corretas.", "Apenas IV está correta."], correta: 1, explicacao: "I (V): Pastas compartilhadas locais violam isolamento — use File Server. II (F): Todo visitante, independentemente de vínculo, deve ser registrado. III (V): FDE + Remote Wipe são as contramedidas diretas contra exfiltração por furto. IV (F): Ameaças internas incluem condutas indevidas por militares credenciados (não apenas Ransomware externo)." },
+    // Q10 – Relacione colunas: Subversões de CID
+    { id: 3012, topico: "Aplic. | Subversão da Tríade CID – Classificação", enunciado: "Associe o cenário ao requisito de SIC violado:\n(A) Malware altera números de pagamentos no banco de dados.\n(B) APT lê relatórios sigilosos em silêncio por meses sem alterar nada.\n(C) DDoS torna o servidor de e-mail inacessível por 4 horas.\n(D) Fita LTO com backup não-criptografado é descartada em lixo público.", alternativas: ["A=Disponibilidade, B=Confidencialidade, C=Integridade, D=Autenticidade.", "A=Integridade, B=Confidencialidade, C=Disponibilidade, D=Confidencialidade.", "A=Confidencialidade, B=Integridade, C=Disponibilidade, D=Autenticidade.", "A=Autenticidade, B=Disponibilidade, C=Integridade, D=Confidencialidade.", "A=Integridade, B=Disponibilidade, C=Autenticidade, D=Integridade."], correta: 1, explicacao: "A=Integridade (dados foram alterados). B=Confidencialidade (informações expostas a quem não tem Need-to-Know). C=Disponibilidade (serviço indisponível). D=Confidencialidade (dados sigilosos expostos por descarte inadequado, sem Wipe)." },
+    // Q11 – Prazos RAD justificativa
+    { id: 3013, topico: "Aplic. | Por que 45 dias para o Plano Corretivo?", enunciado: "Por que os 45 dias para o Plano de Ações Corretivas após o RAD são importantes administrativamente?", alternativas: ["Apenas para dar tempo ao Titular de contratar empresas de segurança civil.", "Porque o prazo é negociável e serve apenas como sugestão ao Comando.", "Porque formaliza a obrigação jurídico-administrativa do Comando de sanar as deficiências auditadas, sob risco de responsabilização no IPM e de reauditoria. O prazo cria um marco de accountability inegável.", "Para que o CTIM possa planejar a próxima auditoria programada bienal.", "Apenas para cumprir protocolo burocrático sem consequência real."], correta: 2, explicacao: "Os 45 dias não são simbólicos: criam um marco jurídico-administrativo. O Titular que não apresentar o plano em prazo fica pessoalmente responsabilizado. O prazo transforma a auditoria em instrumento de compliance real, não mera formalidade." },
+    // Q12 – Rito forense passo a passo
+    { id: 3014, topico: "Aplic. | Rito de Apreensão Forense (DCTIMARINST-31-02B)", enunciado: "Ao apreender uma CPU ligada com suspeita de crime digital, qual é o procedimento CORRETO segundo a doutrina?", alternativas: ["Desligar imediatamente puxando o cabo da tomada para evitar scripts de autodestruição de forma rápida.", "Não desligar pela via convencional; isolar o ambiente, fotografar e documentar a tela como encontrada, depois solicitar ao CTIM/EA o dump de memória RAM e imagem forense do disco.", "Formatar o disco antes de entregar ao CTIM para limpar arquivos suspeitos.", "Conectar a um servidor seguro para backup preventivo imediato via rede.", "Solicitar que o próprio suspeito faça logoff antes de encaminhar o equipamento."], correta: 1, explicacao: "Procedimento forense (DCTIMARINST-31-02B): 1. Não desligue (RAM volátil = evidência). 2. Isole o perímetro. 3. Fotografe tela e configuração física. 4. Solicite dump de RAM ao CTIM. 5. Extraia imagem bit-a-bit do disco. 6. Documente toda a Cadeia de Custódia com hash criptográfico." },
+    // Q13 – MDM + FDE contra furto
+    { id: 3015, topico: "Aplic. | MDM + FDE – Proteção Contra Furto (DGMM-0540)", enunciado: "Por que a combinação MDM + FDE (Full Disk Encryption) impede a exfiltração de dados de um dispositivo funcional furtado?", alternativas: ["Porque o MDM bloqueia o chip telefônico e a FDE remove a memória RAM fisicamente.", "Porque a FDE criptografa todo o armazenamento em repouso (dados ilegíveis sem credencial mesmo com HD removido); e o MDM permite o Wipe remoto via rede, apagando todos os dados quando o dispositivo se reconectar — eliminando o risco em dois vetores distintos.", "Porque o MDM rastreia o dispositivo por GPS e alerta a Polícia Federal automaticamente.", "Porque a FDE cria um backup automático na nuvem da MB antes do furto.", "Porque ambas as tecnologias dependem de o dispositivo estar conectado à RECIM para funcionar."], correta: 1, explicacao: "FDE: dados criptografados em repouso — mesmo retirando o disco e conectando em outro dispositivo, os dados são ilegíveis. MDM/Wipe Remoto: ao reconectar à rede, o comando OTA apaga todos os dados restantes. Dois mecanismos complementares que cobrem cenários distintos de exfiltração." }
+];
+
+let index = 0;
+let score = { correct: 0, incorrect: 0 };
+let history = {};
+const STORAGE_KEY = 'capa_sic_lstm02_history';
+
+function init() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+        history = JSON.parse(saved);
+        score.correct = Object.values(history).filter(r => r.correct).length;
+        score.incorrect = Object.values(history).filter(r => !r.correct).length;
+    }
+    QUESTOES.sort(() => Math.random() - 0.5);
+    document.getElementById('total-q').innerText = QUESTOES.length;
+    updateStats();
+    renderQuestion();
+}
+
+function updateStats() {
+    document.getElementById('score-correct').innerText = score.correct;
+    document.getElementById('score-incorrect').innerText = score.incorrect;
+}
+
+function renderQuestion() {
+    if (index >= QUESTOES.length) {
+        document.getElementById('q-topic').innerText = "Finalizado";
+        document.getElementById('q-text').innerText = "✅ Você completou o Simulado 02 – Aplicação Analítica!";
+        document.getElementById('q-options').innerHTML = "";
+        document.getElementById('btn-next').disabled = true;
+        return;
+    }
+    const q = QUESTOES[index];
+    document.getElementById('current-q').innerText = index + 1;
+    document.getElementById('q-topic').innerText = q.topico;
+    document.getElementById('q-text').innerText = q.enunciado;
+    const optionsContainer = document.getElementById('q-options');
+    optionsContainer.innerHTML = '';
+    document.getElementById('q-feedback').className = 'feedback';
+    const prev = history[q.id];
+    q.alternativas.forEach((alt, idx) => {
+        const div = document.createElement('div');
+        div.className = 'option';
+        const letter = String.fromCharCode(65 + idx);
+        div.innerHTML = `<div class="option-letter">${letter}</div><div class="option-text">${alt}</div>`;
+        if (prev) {
+            div.classList.add('disabled');
+            if (idx === q.correta) div.classList.add('correct');
+            if (idx === prev.selected && !prev.correct) div.classList.add('incorrect');
+        } else {
+            div.onclick = () => selectOption(idx);
+        }
+        optionsContainer.appendChild(div);
+    });
+    if (prev) { showFeedback(prev.correct, q.explicacao); document.getElementById('btn-next').disabled = false; }
+    else { document.getElementById('btn-next').disabled = true; }
+    document.getElementById('btn-prev').disabled = index === 0;
+    document.getElementById('progress').style.width = `${(index / QUESTOES.length) * 100}%`;
+}
+
+function selectOption(selectedIdx) {
+    const q = QUESTOES[index];
+    if (history[q.id]) return;
+    const isCorrect = (selectedIdx === q.correta);
+    history[q.id] = { selected: selectedIdx, correct: isCorrect };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    if (isCorrect) score.correct++; else score.incorrect++;
+    updateStats();
+    renderQuestion();
+}
+
+function showFeedback(isCorrect, text) {
+    const box = document.getElementById('q-feedback');
+    document.getElementById('feedback-exp').innerText = text;
+    box.className = 'feedback show ' + (isCorrect ? 'feedback-correct' : 'feedback-incorrect');
+    document.getElementById('feedback-title').innerText = isCorrect ? '✅ Resposta Correta!' : '❌ Resposta Incorreta';
+}
+
+function nextQuestion() { if (index < QUESTOES.length - 1) { index++; renderQuestion(); } }
+function prevQuestion() { if (index > 0) { index--; renderQuestion(); } }
+function resetProgress() {
+    if (!confirm("Resetar todo o progresso do Simulado 02?")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    history = {}; score = { correct: 0, incorrect: 0 }; index = 0;
+    QUESTOES.sort(() => Math.random() - 0.5);
+    updateStats(); renderQuestion();
+}
+
+window.onload = init;
+</script>
+</body>
+</html>
