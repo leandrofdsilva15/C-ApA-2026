@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Simulador C-ApA 2026 | MAGE & Antenas</title>
+    <style>
+        :root {
+            --primary: #00f2ff;
+            --secondary: #7000ff;
+            --bg: #05050b;
+            --surface: rgba(255, 255, 255, 0.05);
+            --text: #e0e0e0;
+            --correct: #00ff88;
+            --wrong: #ff3e3e;
+            --accent: #ff00ea;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(112, 0, 255, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(0, 242, 255, 0.15) 0%, transparent 40%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 32px;
+            padding: 3rem;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 900;
+            letter-spacing: 3px;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+        }
+
+        .progress-bar-wrap {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin: 2rem 0;
+        }
+
+        #progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 10px;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #888;
+        }
+
+        #game-box {
+            margin-top: 1rem;
+        }
+
+        .question-text {
+            font-size: 1.4rem;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 2rem;
+            color: #fff;
+        }
+
+        .options-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .option-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 1.5rem;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+
+        .option-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            transform: translateY(-2px);
+            border-color: var(--primary);
+        }
+
+        .option-card.correct {
+            background: rgba(0, 255, 136, 0.1) !important;
+            border-color: var(--correct) !important;
+            color: var(--correct);
+        }
+
+        .option-card.wrong {
+            background: rgba(255, 62, 62, 0.1) !important;
+            border-color: var(--wrong) !important;
+            color: var(--wrong);
+        }
+
+        .explanation {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(0, 0, 0, 0.4);
+            border-left: 4px solid var(--primary);
+            border-radius: 12px;
+            display: none;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #bbb;
+        }
+
+        footer {
+            margin-top: 3rem;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn-next {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff;
+            border: none;
+            padding: 1rem 3rem;
+            border-radius: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: 0.3s;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .btn-next.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        #result-screen {
+            text-align: center;
+            display: none;
+        }
+
+        .final-score {
+            font-size: 6rem;
+            font-weight: 900;
+            margin: 2rem 0;
+            color: var(--primary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header id="quiz-header">
+            <h1>Simulador SIC 2026</h1>
+            <div class="progress-bar-wrap">
+                <div id="progress-fill"></div>
+            </div>
+            <div class="stats-row">
+                <span>QUESTÃO <span id="q-curr">1</span> DE <span id="q-total">0</span></span>
+                <span>ACERTOS: <span id="q-hits">0</span></span>
+            </div>
+        </header>
+
+        <div id="game-box">
+            <p class="question-text" id="q-text"></p>
+            <div class="options-grid" id="q-options"></div>
+            <div class="explanation" id="q-desc"></div>
+            <footer>
+                <button class="btn-next" id="btn-next" onclick="nextQuestion()">Próxima Questão</button>
+            </footer>
+        </div>
+
+        <div id="result-screen">
+            <h2>Avaliação Finalizada</h2>
+            <div class="final-score" id="res-score">0%</div>
+            <p id="res-msg"></p>
+            <button class="btn-next active" style="margin-top: 3rem;" onclick="location.reload()">Reiniciar
+                Simulação</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            // ELETROMAGNETISMO
+            {
+                q: "O que são ondas Eletromagnéticas?",
+                o: ["Fluxos de partículas sólidas no vácuo.", "Perturbações periódicas de natureza eletromagnética que transportam energia.", "Ondas puramente elétricas que não se propagam no espaço livre.", "Vibrações mecânicas em meios líquidos."],
+                a: 1,
+                d: "São perturbações periódicas que se propagam em meio material ou espaço livre e são portadoras de energia."
+            },
+            {
+                q: "Como se encontram dispostos os campos elétrico e magnético em uma onda EM?",
+                o: ["Paralelos entre si.", "Em ângulos de 45º.", "Perpendicularmente entre si.", "Sobrepostos no mesmo plano."],
+                a: 2,
+                d: "A energia existe parcialmente como campo elétrico e parcialmente como magnético, dispostos perpendicularmente entre si."
+            },
+            {
+                q: "Por que as ondas eletromagnéticas são caracterizadas como transversais?",
+                o: ["Porque a perturbação ocorre na mesma direção da propagação.", "Devido ao ângulo de 90º entre a perturbação e a direção de propagação.", "Porque elas só se propagam em meios gasosos.", "Devido à sua alta velocidade."],
+                a: 1,
+                d: "A direção de propagação é perpendicular aos vetores de campo elétrico e magnético (ângulo de 90º)."
+            },
+            {
+                q: "Quais são as quatro características principais das Ondas Eletromagnéticas?",
+                o: ["Cor, Cheiro, Peso e Massa.", "Comprimento de onda, velocidade, amplitude e frequência.", "Temperatura, Pressão, Volume e Calor.", "Reflexão, Refração, Difração e Absorção."],
+                a: 1,
+                d: "Comprimento de onda, velocidade de propagação, amplitude e frequência são as características fundamentais."
+            },
+            {
+                q: "O que é o Espectro Eletromagnético?",
+                o: ["Um tipo de antena específica.", "O conjunto contínuo de radiações, das ondas de rádio aos raios Gama.", "A cor de uma onda de luz.", "O limite de alcance de um radar."],
+                a: 1,
+                d: "É um conjunto contínuo de radiações que vão desde as mais longas ondas de rádio até os raios Gama."
+            },
+            {
+                q: "De acordo com a Lei de Faraday da indução eletromagnética:",
+                o: ["Um fio sob campo magnético variável gera corrente elétrica.", "Um fio com corrente gera campo magnético proporcional.", "A velocidade da luz é constante.", "Ondas EM não sofrem refração."],
+                a: 0,
+                d: "Ao se colocar um fio condutor sob efeito de um campo magnético variável, percebe-se neste fio uma corrente elétrica variável."
+            },
+            {
+                q: "Qual grandeza física representa o número de oscilações da onda por um certo período e só muda se houver alteração na fonte?",
+                o: ["Período", "Amplitude", "Frequência", "Velocidade"],
+                a: 2,
+                d: "A Frequência é o número de oscilações e sua característica é dependente exclusivamente da fonte emissora."
+            },
+            {
+                q: "O que define a Polarização de uma onda eletromagnética?",
+                o: ["A velocidade de propagação.", "A posição do vetor do campo elétrico em relação ao horizonte geográfico.", "A altura da crista da onda.", "O tipo de material do transmissor."],
+                a: 1,
+                d: "É a posição do vetor do campo elétrico em relação ao horizonte geográfico."
+            },
+            {
+                q: "Quais são os tipos básicos de Polarização?",
+                o: ["Longitudinais e Transversais.", "Lineares, circulares e elípticas.", "Puras e Impuras.", "Vácuo e Atmosfera."],
+                a: 1,
+                d: "As polarizações básicas são: lineares, circulares e elípticas."
+            },
+            {
+                q: "O que estará sempre presente em todos os sistemas de guerra eletrônica?",
+                o: ["Sinal Inimigo", "Ruído Térmico", "Gelo na Antena", "Ondas Gamma"],
+                a: 1,
+                d: "O ruído térmico é uma constante presente em todos os sistemas eletrônicos."
+            },
+
+            // ANTENAS
+            {
+                q: "O que é uma Antena?",
+                o: ["Um gerador de energia elétrica.", "Dispositivo responsável pelo acoplamento da linha de transmissão com o meio de propagação.", "Um filtro de ruído térmico.", "Uma bateria de longa duração."],
+                a: 1,
+                d: "É o dispositivo responsável pelo acoplamento da linha de transmissão com o meio de propagação da onda."
+            },
+            {
+                q: "Qual o tipo de antena aplicada em automóveis e navios, com formatos como dipolo ou helicoidal?",
+                o: ["Antenas de Abertura", "Antenas Filamentares", "Antenas Phased-array", "Antenas de Microfita"],
+                a: 1,
+                d: "As antenas filamentares possuem aplicações populares como fio reto (dipolo), de quadro e helicoidal."
+            },
+            {
+                q: "Qual antena é discreta, moldável a superfícies e de baixo custo, usada em aplicações militares?",
+                o: ["Antena de Microfita", "Antena Yagi-Uda", "Antena de Abertura", "Antena Isotrópica"],
+                a: 0,
+                d: "Antenas de microfita consistem de uma placa metálica sobre base aterrada, sendo discretas e moldáveis."
+            },
+            {
+                q: "O que define um Diagrama de Radiação 'Diretivo'?",
+                o: ["Energia distribuída em todas as direções igualmente.", "Energia concentrada em uma determinada direção.", "Ausência de radiação.", "Radiação apenas em frequências baixas."],
+                a: 1,
+                d: "Diretivo: Quando a energia é concentrada em uma determinada direção."
+            },
+            {
+                q: "Sobre o VSWR (coeficiente de reflexão), qual o valor ideal?",
+                o: ["Infinito", "O valor da frequência", "Zero", "Dez"],
+                a: 2,
+                d: "O ideal é que em um processo de transmissão/recepção esse valor seja igual a zero (sem reflexão de energia)."
+            },
+            {
+                q: "O que é Ganho em uma antena?",
+                o: ["Aumento da frequência.", "Capacidade de concentrar energia transmitida/recebida em uma direção.", "Aumento do tamanho físico da antena.", "Redução do ruído térmico."],
+                a: 1,
+                d: "O ganho é a capacidade de concentrar a energia segundo uma determinada direção."
+            },
+            {
+                q: "A antena isotrópica é definida como:",
+                o: ["Uma antena real de alto ganho.", "Uma antena hipotética que irradia igualmente em todas as direções.", "Uma antena usada em submarinos.", "Uma antena que só recebe sinais."],
+                a: 1,
+                d: "Antena hipotética, sem perda, que tem a mesma radiação em todas as direções (esfera)."
+            },
+
+            // SISTEMAS MAGE
+            {
+                q: "Qual a cobertura azimutal do Sistema MAGE UAA-2 (Fragatas Greenhalgh)?",
+                o: ["90°", "180°", "270°", "360°"],
+                a: 3,
+                d: "O MAGE UAA-2 possui cobertura total de 360°."
+            },
+            {
+                q: "No MAGE UAA-2, quais as frequências da Banda 1 e Banda 2 (GHz)?",
+                o: ["1-2 e 2-4", "4-8 e 8-12", "0.5-1 e 1-2", "12-18 e 18-40"],
+                a: 0,
+                d: "Banda 1: 1 a 2 GHz; Banda 2: 2 a 4 GHz."
+            },
+            {
+                q: "Quais são as bandas de frequência (GHz) do MAGE MIR II MK2 (Super Lynx)?",
+                o: ["1-2, 2-4, 4-8", "0.6-4, 4-8, 8-12, 12-18", "8-12, 12-18, 18-40", "1-2, 4-7.5, 12-18"],
+                a: 1,
+                d: "Banda 1: 0.6-4; Banda 2: 4-8; Banda 3: 8-12; Banda 4: 12-18 GHz."
+            },
+            {
+                q: "O MAGE MIR II MK2 possui qual cobertura vertical?",
+                o: ["+/- 10°", "+/- 20°", "+/- 45°", "+/- 90°"],
+                a: 1,
+                d: "A cobertura vertical do MIR II MK2 é de +/- 20°."
+            },
+            {
+                q: "Qual sistema MAGE é composto por Antena, Interface Operador Local e Unidade de Processamento?",
+                o: ["MIR II MK2", "UAA-2", "YAGI-UDA", "PHASED-ARRAY"],
+                a: 1,
+                d: "Esta é a composição do MAGE UAA-2."
+            },
+            {
+                q: "A lei de Ampere descreve que:",
+                o: ["Um campo magnético variável gera corrente.", "Uma corrente elétrica variável gera um campo magnético proporcional.", "A reflexão depende da antena.", "O ruído térmico é nulo."],
+                a: 1,
+                d: "Ao passar por um fio uma corrente elétrica variável, esta causará ao redor um campo magnético."
+            },
+            {
+                q: "Qual grandeza física é o tamanho de uma onda medida de crista a crista?",
+                o: ["Frequência", "Período", "Comprimento de Onda", "Amplitude"],
+                a: 2,
+                d: "O comprimento de onda pode ser medido de crista a crista, início a fim de período ou vale a vale."
+            },
+            {
+                q: "O fenômeno da indução eletromagnética ocorre em:",
+                o: ["Apenas campos elétricos.", "Apenas campos magnéticos.", "Campos elétricos e magnéticos simultaneamente.", "Apenas no vácuo."],
+                a: 2,
+                d: "Um campo elétrico variável gera um campo magnético e vice-versa."
+            },
+            {
+                q: "Antenas de abertura são úteis em fuselagens porque:",
+                o: ["São feitas de fio dipolo.", "São discretas e moldáveis.", "Podem ser convenientemente montadas em superfícies aeronáuticas.", "Operam em baixas frequências."],
+                a: 2,
+                d: "Muito úteis em aplicações aeronáuticas e espaciais pela facilidade de montagem na fuselagem."
+            },
+            {
+                q: "No diagrama de radiação, o que contém a direção de máxima radiação?",
+                o: ["Lóbulo Secundário", "Lóbulo Lateral", "Lóbulo Principal", "Eixo de Polarização"],
+                a: 2,
+                d: "O Lóbulo Principal contém a direção de máxima radiação."
+            },
+            {
+                q: "O ganho de uma antena NÃO é função de qual destes fatores?",
+                o: ["Frequência", "Área da antena", "Eficiência de radiação", "Cor da estrutura"],
+                a: 3,
+                d: "Ganho depende da frequência, largura de banda, área e eficiência, mas não da cor."
+            },
+            {
+                q: "Quanto mais distante a origem da transmissão:",
+                o: ["Maior a densidade de potência.", "Menor a energia espalhada.", "Menor é a densidade disponível para recepção.", "A frequência aumenta."],
+                a: 2,
+                d: "Quanto maior a distância, menor é a densidade disponível para a recepção (energia se espalha)."
+            },
+            {
+                q: "O que acontece se a impedância não for 'casada'?",
+                o: ["Aumenta o ganho.", "Ocorre máxima transferência de energia.", "Ocorre reflexão de energia (desperdício).", "A antena muda de polarização."],
+                a: 2,
+                d: "Impedância casada é necessária para máxima transferência. Descasamento gera reflexão (VSWR)."
+            },
+            {
+                q: "Qual a cobertura horizontal do MAGE MIR II MK2?",
+                o: ["180°", "360°", "90°", "120°"],
+                a: 1,
+                d: "Possui cobertura horizontal total de 360°."
+            },
+            {
+                q: "Banda 3 e Banda 4 do MAGE UAA-2 operam em quais faixas (GHz)?",
+                o: ["1-2 e 2-4", "4-7.5 e 7.5-12", "12-18 e 18-40", "0.5-1 e 1-2"],
+                a: 1,
+                d: "Banda 3: 4 a 7.5 GHz; Banda 4: 7.5 a 12 GHz."
+            },
+            {
+                q: "O que é diretividade?",
+                o: ["Velocidade da luz.", "Capacidade de concentrar energia em uma direção em relação a uma antena isotrópica.", "O tamanho físico da antena.", "A cor do sinal."],
+                a: 1,
+                d: "Quanto maior a diretividade, maior a propriedade em concentrar energia em uma direção."
+            },
+            {
+                q: "Cite um exemplo de antena composta por vários elementos radiantes agrupados:",
+                o: ["Dipolo", "Isotrópica", "Phased-array (Conjunto)", "Yagi-Uda"],
+                a: 2,
+                d: "Phased-array é formada por vários elementos radiantes agrupados em arranjo elétrico/geométrico."
+            },
+            {
+                q: "O que é Amplitude?",
+                o: ["Tempo da onda.", "Altura da onda (distância eixo à crista).", "Número de oscilações.", "Posição em relação à terra."],
+                a: 1,
+                d: "Amplitude é a altura da onda; quanto maior, maior a energia transportada."
+            },
+            {
+                q: "Polarização em antenas pode ser Linear, Circular ou:",
+                o: ["Quadrada", "Elíptica", "Triangular", "Nula"],
+                a: 1,
+                d: "Tipos básicos: Lineares, circulares e elípticas."
+            },
+            {
+                q: "Frequência e Comprimento de Onda são:",
+                o: ["Inversamente proporcionais.", "Diretamente proporcionais.", "Independentes.", "A mesma coisa."],
+                a: 0,
+                d: "São grandezas relacionadas: quanto maior a frequência, menor o comprimento de onda."
+            }
+        ];
+
+        let currentQ = 0;
+        let scoreHits = 0;
+        let canAnswer = true;
+
+        function loadQuestion() {
+            const data = quizData[currentQ];
+            document.getElementById('q-curr').innerText = currentQ + 1;
+            document.getElementById('q-total').innerText = quizData.length;
+            document.getElementById('q-text').innerText = data.q;
+            document.getElementById('progress-fill').style.width = `${(currentQ / quizData.length) * 100}%`;
+
+            const optionsGrid = document.getElementById('q-options');
+            optionsGrid.innerHTML = '';
+
+            data.o.forEach((opt, idx) => {
+                const card = document.createElement('div');
+                card.className = 'option-card';
+                card.innerText = opt;
+                card.onclick = () => checkAnswer(idx, card);
+                optionsGrid.appendChild(card);
+            });
+
+            document.getElementById('q-desc').style.display = 'none';
+            document.getElementById('btn-next').classList.remove('active');
+            canAnswer = true;
+        }
+
+        function checkAnswer(idx, card) {
+            if (!canAnswer) return;
+            canAnswer = false;
+
+            const correctIdx = quizData[currentQ].a;
+            const cards = document.querySelectorAll('.option-card');
+
+            if (idx === correctIdx) {
+                card.classList.add('correct');
+                scoreHits++;
+            } else {
+                card.classList.add('wrong');
+                cards[correctIdx].classList.add('correct');
+            }
+
+            document.getElementById('q-hits').innerText = scoreHits;
+            const desc = document.getElementById('q-desc');
+            desc.innerText = "EXPLICAÇÃO: " + quizData[currentQ].d;
+            desc.style.display = 'block';
+            document.getElementById('btn-next').classList.add('active');
+        }
+
+        function nextQuestion() {
+            currentQ++;
+            if (currentQ < quizData.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('game-box').style.display = 'none';
+            document.getElementById('quiz-header').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+
+            const pct = Math.round((scoreHits / quizData.length) * 100);
+            document.getElementById('res-score').innerText = `${pct}%`;
+            document.getElementById('res-msg').innerText = pct >= 80 ? "EXCELENTE! Você dominou o conteúdo dos manuais." : "BOM TRABALHO. Sugerimos revisar os pontos de erro.";
+        }
+
+        loadQuestion();
+    </script>
+
+</body>
+
+</html>
