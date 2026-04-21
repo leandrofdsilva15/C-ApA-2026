@@ -1,1 +1,1 @@
-VAMOS ESTUDAR!
+Contribuir é preciso!
