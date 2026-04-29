@@ -1,0 +1,3902 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Singularidade v1.3 | Simulador OCS-Tier4</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent: #00f2ff;
+            --accent-glow: rgba(0, 242, 255, 0.3);
+            --text: #e0e0e0;
+            --text-dim: #a0a0a0;
+            --correct: #00ff88;
+            --wrong: #ff3366;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(0, 242, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(255, 51, 102, 0.05) 0%, transparent 40%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: var(--accent);
+            text-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        .stat-item {
+            text-align: right;
+        }
+
+        .stat-label { color: var(--text-dim); display: block; }
+        .stat-value { color: var(--accent); font-weight: 600; }
+
+        .entropy-bar {
+            height: 4px;
+            background: var(--glass-border);
+            border-radius: 2px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .entropy-progress {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 30px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            min-height: 400px;
+            position: relative;
+        }
+
+        .provenance-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--text-dim);
+            padding: 4px 8px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 5px;
+        }
+
+        .topic-label {
+            display: inline-block;
+            padding: 5px 15px;
+            background: var(--accent-glow);
+            color: var(--accent);
+            border-radius: 100px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .question-text {
+            font-size: 1.4rem;
+            line-height: 1.4;
+            font-weight: 600;
+            margin-bottom: 30px;
+        }
+
+        .options-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .option {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            padding: 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .option:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--accent);
+            transform: translateX(10px);
+        }
+
+        .option.selected {
+            background: var(--accent-glow);
+            border-color: var(--accent);
+        }
+
+        .option.correct {
+            background: rgba(0, 255, 136, 0.1);
+            border-color: var(--correct);
+            color: var(--correct);
+        }
+
+        .option.wrong {
+            background: rgba(255, 51, 102, 0.1);
+            border-color: var(--wrong);
+            color: var(--wrong);
+        }
+
+        .feedback {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 15px;
+            background: rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .explanation {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+
+        .evidence {
+            margin-top: 15px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--accent);
+            font-style: italic;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 30px;
+            background: var(--accent);
+            color: var(--bg);
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        #start-screen {
+            text-align: center;
+            padding: 60px;
+        }
+
+        .difficulty-indicator {
+            height: 10px;
+            width: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .difficulty-advanced { background: #ff3366; box-shadow: 0 0 5px #ff3366; }
+        .difficulty-intermediate { background: #ffcc00; box-shadow: 0 0 5px #ffcc00; }
+        .difficulty-easy { background: #00ff88; box-shadow: 0 0 5px #00ff88; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">SINGULARIDADE v1.3</div>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">ENTROPIA</span>
+                    <span class="stat-value" id="stat-entropy">0%</span>
+                    <div class="entropy-bar"><div class="entropy-progress" id="entropy-bar"></div></div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">DOMÍNIO</span>
+                    <span class="stat-value" id="stat-progress">0/167</span>
+                </div>
+            </div>
+        </header>
+
+        <main id="app">
+            <div id="start-screen" class="card">
+                <h1 style="font-size: 2.5rem; margin-bottom: 20px;">Pronto para a Ingestão?</h1>
+                <p style="color: var(--text-dim); margin-bottom: 40px;">Banco de Dados OCS-Tier4 carregado com 167 questões auditadas (UN-01 a UN-06 + GCV/SOC).</p>
+                <button onclick="quiz.start()">INICIAR PROTOCOLO</button>
+            </div>
+
+            <div id="quiz-screen" class="card" style="display: none;">
+                <div class="provenance-badge" id="provenance">ID: SYSTEM_AUTO_GENERATED</div>
+                <div class="topic-label" id="topic">TÓPICO</div>
+                <div class="question-text" id="question">Carregando...</div>
+                <div class="options-grid" id="options">
+                    <!-- Opções injetadas aqui -->
+                </div>
+                <div class="feedback" id="feedback">
+                    <div class="explanation" id="explanation"></div>
+                    <div class="evidence" id="evidence"></div>
+                </div>
+                <div class="nav-buttons">
+                    <button id="next-btn" onclick="quiz.next()" style="display: none;">PRÓXIMA QUESTÃO</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+
+        const embedded_data = {
+  "exam_info": "C-ApA SIC 2026 - Master Database (30 High Fidelity Questions)",
+  "questions": [
+    {
+      "id": "GCV_001",
+      "topic": "Gestão de Ciclo de Vida",
+      "difficulty": "advanced",
+      "question": "De acordo com a doutrina de GCV, a Estrutura Analítica de Custos (EAC) deve possuir a característica de ser 'Abrangente'. O que isto significa na prática orçamentária?",
+      "options": [
+        "A) Significa que a EAC deve cobrir apenas os custos de aquisição inicial.",
+        "B) Significa que todos os elementos de custo relevantes, do P&D ao desfazimento, devem ser identificados para evitar custos ocultos.",
+        "C) Significa que a EAC deve ser compartilhada com todas as indústrias do setor.",
+        "D) Significa que o custo deve ser estimado com uma margem de erro superior a 50%."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Ser abrangente significa que a EAC não pode deixar lacunas. Ela deve mapear todos os recursos financeiros necessários em cada fase (Obtenção, O&A e Desfazimento), garantindo que não surjam 'surpresas' financeiras durante a vida útil do sistema.",
+      "source_evidence": [
+        {
+          "file_name": "gcv.txt",
+          "exact_snippet": "Abrangente – todos os elementos de custo relevantes devem ser identificados."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Avaliação."
+    },
+    {
+      "id": "GCV_002",
+      "topic": "Gestão de Ciclo de Vida",
+      "difficulty": "advanced",
+      "question": "A norma ISO 15288 define o ciclo de vida de sistemas. Qual componente do CCV (Custo do Ciclo de Vida) costuma ser o mais oneroso em sistemas militares de longa duração?",
+      "options": [
+        "A) Custo de Obtenção (Ob).",
+        "B) Custo de Desfazimento (CD).",
+        "C) Custo de Operação e Apoio (O&A).",
+        "D) Custo de Pesquisa e Desenvolvimento (P&D)."
+      ],
+      "correct_answer": "C",
+      "answer_explanation": "Em sistemas de longa duração (30+ anos), os custos de Operação e Apoio (combustível, manutenção, pessoal) representam a maior fatia do CCV.",
+      "source_evidence": [
+        {
+          "file_name": "ciclo_vida.txt",
+          "exact_snippet": "Componentes do CCV: Obtenção (Ob), Operação e Apoio (O&A) e Desfazimento (D)."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Aplicação."
+    },
+    {
+      "id": "SOC_001",
+      "topic": "Eng. Social",
+      "difficulty": "advanced",
+      "question": "Na técnica de Engenharia Social Reversa, qual o papel da sabotagem intencional executada pelo atacante?",
+      "options": [
+        "A) Causar dano financeiro direto.",
+        "B) Criar a necessidade de suporte, fazendo com que a vítima procure o atacante.",
+        "C) Testar a resiliência do firewall.",
+        "D) Desviar a atenção para um ataque de ransomware em massa."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "A sabotagem cria o problema que o atacante (fingindo ser do suporte) irá 'resolver', ganhando a confiança total da vítima.",
+      "source_evidence": [
+        {
+          "file_name": "gcv.txt",
+          "exact_snippet": "Fazer com que a vítima procure o atacante em busca de ajuda."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Análise."
+    },
+    {
+      "id": "GCV_003",
+      "topic": "Gestão de Ciclo de Vida",
+      "difficulty": "intermediate",
+      "question": "Qual a relação estrutural entre a EAP (Estrutura Analítica do Programa) e a EAC (Estrutura Analítica de Custos)?",
+      "options": [
+        "A) São independentes.",
+        "B) A EAC é elaborada a partir da EAP.",
+        "C) A EAP é derivada da EAC.",
+        "D) A EAC foca apenas em hardware, a EAP em software."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "A EAC mapeia os custos para cada elemento de entrega definido na EAP.",
+      "source_evidence": [
+        {
+          "file_name": "gcv.txt",
+          "exact_snippet": "A EAC é elaborada a partir da Estrutura Analítica do Programa (EAP)."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Análise."
+    },
+    {
+      "id": "GCV_004",
+      "topic": "Gestão de Ciclo de Vida",
+      "difficulty": "advanced",
+      "question": "A característica 'Inequívoca' de uma EAC refere-se a qual aspecto da contabilização de custos?",
+      "options": [
+        "A) O custo deve ser sempre o menor possível.",
+        "B) Um elemento de custo deve ser alocado a apenas um item da EAC, evitando dupla contagem.",
+        "C) O custo deve ser expresso em dólares americanos.",
+        "D) A EAC deve ser assinada por um auditor externo."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Inequívoca significa que não há ambiguidade na alocação: cada custo tem seu lugar único na estrutura, prevenindo inflação artificial do orçamento por contagem duplicada.",
+      "source_evidence": [
+        {
+          "file_name": "gcv.txt",
+          "exact_snippet": "Inequívoca – um elemento de custo deve ser alocado a apenas um item da EAC."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "GCV_005",
+      "topic": "Gestão de Ciclo de Vida",
+      "difficulty": "advanced",
+      "question": "O Custo de Ciclo de Vida (CCV) é calculado pela fórmula CCV = CP&D + COb + CO&A + CD. O que representa o termo 'CD'?",
+      "options": [
+        "A) Custo de Desenvolvimento.",
+        "B) Custo de Desfazimento.",
+        "C) Custo de Depreciação.",
+        "D) Custo de Distribuição."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "CD representa o Custo de Desfazimento (Retirement/Disposal), que inclui desativação, desmilitarização e limpeza ambiental.",
+      "source_evidence": [
+        {
+          "file_name": "gcv.txt",
+          "exact_snippet": "CD = Custo de Desfazimento."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOC_002",
+      "topic": "Eng. Social",
+      "difficulty": "intermediate",
+      "question": "O gatilho psicológico da 'Reciprocidade' é usado pelo engenheiro social quando ele:",
+      "options": [
+        "A) Ameaça a vítima com uma punição.",
+        "B) Oferece um pequeno brinde ou favor não solicitado para criar uma dívida moral.",
+        "C) Cria uma situação de urgência extrema.",
+        "D) Usa um uniforme oficial para demonstrar autoridade."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "A reciprocidade baseia-se na tendência humana de querer retribuir um favor, tornando a vítima mais propensa a ceder informações após receber 'ajuda' do atacante.",
+      "source_evidence": [
+        {
+          "file_name": "gcv.txt",
+          "exact_snippet": "Reciprocidade: As pessoas tendem a retribuir um favor."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "GCV_006",
+      "topic": "Gestão de Ciclo de Vida",
+      "difficulty": "advanced",
+      "question": "Na fase de 'Conceito' do ciclo de vida (ISO 15288), qual o principal objetivo técnico?",
+      "options": [
+        "A) Iniciar a fabricação em massa.",
+        "B) Identificar as necessidades dos stakeholders e explorar soluções alternativas.",
+        "C) Realizar a manutenção preventiva do sistema.",
+        "D) Treinar os operadores finais."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "A fase de conceito foca na definição do problema e na análise de viabilidade de diferentes soluções antes de comprometer recursos no desenvolvimento.",
+      "source_evidence": [
+        {
+          "file_name": "ciclo_vida.txt",
+          "exact_snippet": "Estágio de Conceito: Identificação das necessidades dos interessados."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "GCV_007",
+      "topic": "Gestão de Ciclo de Vida",
+      "difficulty": "intermediate",
+      "question": "A 'Engenharia de Sistemas' é descrita como uma abordagem interdisciplinar. Qual seu papel fundamental em relação aos requisitos?",
+      "options": [
+        "A) Ignorar requisitos não funcionais para acelerar a entrega.",
+        "B) Garantir a tradução das necessidades do usuário em especificações técnicas verificáveis.",
+        "C) Focar exclusivamente no código-fonte do sistema.",
+        "D) Substituir a gestão de projetos na fase de produção."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "A Engenharia de Sistemas assegura que o que é construído atende exatamente ao que o cliente precisa, através de um processo rigoroso de definição e verificação de requisitos.",
+      "source_evidence": [
+        {
+          "file_name": "sistema.txt",
+          "exact_snippet": "Engenharia de Sistemas: Abordagem interdisciplinar para viabilizar a realização de sistemas."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOC_003",
+      "topic": "Eng. Social",
+      "difficulty": "advanced",
+      "question": "A técnica de 'Tailgating' ou 'Piggybacking' consiste em:",
+      "options": [
+        "A) Enviar e-mails falsos com anexos maliciosos.",
+        "B) Seguir fisicamente uma pessoa autorizada para entrar em uma área restrita.",
+        "C) Ligar para a vítima fingindo ser do suporte técnico.",
+        "D) Deixar pendrives infectados em locais estratégicos."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "É uma falha de segurança física onde o atacante aproveita a cortesia (segurar a porta) ou a distração de um funcionário para invadir um local protegido.",
+      "source_evidence": [
+        {
+          "file_name": "gcv.txt",
+          "exact_snippet": "Tailgating: Seguir alguém autorizado para entrar em áreas restritas."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "GCV_008",
+      "topic": "Gestão de Ciclo de Vida",
+      "difficulty": "advanced",
+      "question": "O que caracteriza a característica 'Coerente' da EAC?",
+      "options": [
+        "A) O uso de diferentes moedas no mesmo relatório.",
+        "B) A consistência das definições de custo entre diferentes projetos da organização.",
+        "C) A mudança frequente das categorias de custo para evitar auditorias.",
+        "D) A dependência de um único fornecedor para todos os dados."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Coerência garante que os dados possam ser comparados e agregados em nível organizacional, facilitando a análise histórica e a estimativa de novos projetos.",
+      "source_evidence": [
+        {
+          "file_name": "gcv.txt",
+          "exact_snippet": "Coerente – as definições devem ser consistentes com as outras estruturas da organização."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "GCV_009",
+      "topic": "Gestão de Ciclo de Vida",
+      "difficulty": "intermediate",
+      "question": "Qual estágio do ciclo de vida foca na 'transformação dos requisitos em um produto físico ou lógico'?",
+      "options": [
+        "A) Desenvolvimento.",
+        "B) Produção.",
+        "C) Operação.",
+        "D) Conceito."
+      ],
+      "correct_answer": "A",
+      "answer_explanation": "O estágio de Desenvolvimento é onde ocorre o design detalhado, a prototipagem e a integração que resultam no sistema pronto para ser produzido em série.",
+      "source_evidence": [
+        {
+          "file_name": "ciclo_vida.txt",
+          "exact_snippet": "Estágio de Desenvolvimento: Criação do sistema."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOC_004",
+      "topic": "Eng. Social",
+      "difficulty": "advanced",
+      "question": "O gatilho da 'Escassez' é frequentemente utilizado em ataques de Phishing através de:",
+      "options": [
+        "A) Mensagens de parabéns por um prêmio inexistente.",
+        "B) Avisos de 'últimas horas para evitar o bloqueio da conta'.",
+        "C) Pedidos de ajuda para uma instituição de caridade.",
+        "D) Convites para reuniões de trabalho rotineiras."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "A escassez de tempo (urgência) impede a vítima de pensar logicamente, forçando-a a agir por impulso para não 'perder' o acesso ou uma oportunidade.",
+      "source_evidence": [
+        {
+          "file_name": "gcv.txt",
+          "exact_snippet": "Escassez: As pessoas valorizam o que é limitado."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Aplicação."
+    },
+    {
+      "id": "GCV_010",
+      "topic": "Gestão de Ciclo de Vida",
+      "difficulty": "intermediate",
+      "question": "Um 'Sistema de Sistemas' (SoS) diferencia-se de um sistema complexo comum principalmente por:",
+      "options": [
+        "A) Ter mais linhas de código.",
+        "B) Ser composto por sistemas independentes que colaboram para uma missão comum.",
+        "C) Ser gerenciado por uma única pessoa.",
+        "D) Não possuir requisitos funcionais."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "No SoS, os sistemas constituintes têm vida própria e podem operar de forma independente, mas são integrados para alcançar capacidades superiores (ex: um Grupo-Tarefa Naval).",
+      "source_evidence": [
+        {
+          "file_name": "sistema.txt",
+          "exact_snippet": "Sistema de Sistemas: Sistemas constituintes independentes."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOC_005",
+      "topic": "Eng. Social",
+      "difficulty": "advanced",
+      "question": "A técnica de 'Vishing' utiliza qual meio de comunicação principal?",
+      "options": [
+        "A) E-mail.",
+        "B) SMS.",
+        "C) Voz (telefone ou VoIP).",
+        "D) Redes Sociais."
+      ],
+      "correct_answer": "C",
+      "answer_explanation": "Vishing = Voice Phishing. O atacante usa a voz para dar mais credibilidade e exercer pressão psicológica direta sobre a vítima.",
+      "source_evidence": [
+        {
+          "file_name": "gcv.txt",
+          "exact_snippet": "Vishing: Phishing realizado via voz."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "GCV_011",
+      "topic": "Gestão de Ciclo de Vida",
+      "difficulty": "intermediate",
+      "question": "O estágio de 'Apoio' no ciclo de vida é responsável por:",
+      "options": [
+        "A) Projetar o sistema.",
+        "B) Fornecer logística, manutenção e suprimentos para manter o sistema operacional.",
+        "C) Destruir o sistema de forma segura.",
+        "D) Vender o sistema para outros países."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "O Apoio (Support) garante a sustentabilidade do sistema durante sua vida útil, tratando de reparos e disponibilidade.",
+      "source_evidence": [
+        {
+          "file_name": "ciclo_vida.txt",
+          "exact_snippet": "Estágio de Apoio: Provisão de serviços de suporte."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "GCV_012",
+      "topic": "Gestão de Ciclo de Vida",
+      "difficulty": "advanced",
+      "question": "A característica 'Rastreável' da EAC garante que:",
+      "options": [
+        "A) O dinheiro possa ser recuperado em caso de roubo.",
+        "B) Cada custo possa ser ligado de volta à documentação fonte e premissas originais.",
+        "C) Os funcionários possam ser monitorados via GPS.",
+        "D) O projeto seja finalizado no prazo."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Rastreabilidade permite auditar as estimativas, entendendo as bases de cálculo e permitindo ajustes precisos quando as premissas mudam.",
+      "source_evidence": [
+        {
+          "file_name": "gcv.txt",
+          "exact_snippet": "Rastreável – os custos devem ser vinculados aos dados de origem."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOC_006",
+      "topic": "Eng. Social",
+      "difficulty": "intermediate",
+      "question": "O 'Baiting' (Isca) difere de outros ataques por:",
+      "options": [
+        "A) Ocorrer apenas em ambientes virtuais.",
+        "B) Oferecer algo tangível (como um pendrive ou download gratuito) que desperta a curiosidade da vítima.",
+        "C) Nunca usar malware.",
+        "D) Ser executado apenas por agentes governamentais."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "O baiting usa a 'ganância' ou curiosidade da vítima (ex: deixar um pendrive rotulado 'Salários 2026' no estacionamento).",
+      "source_evidence": [
+        {
+          "file_name": "gcv.txt",
+          "exact_snippet": "Baiting: Usar iscas físicas ou digitais para atrair a vítima."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "GCV_013",
+      "topic": "Gestão de Ciclo de Vida",
+      "difficulty": "advanced",
+      "question": "Qual a principal diferença entre 'Verificação' e 'Validação' na Engenharia de Sistemas?",
+      "options": [
+        "A) Verificação foca no custo, Validação no prazo.",
+        "B) Verificação garante que o sistema foi construído corretamente (segundo os requisitos); Validação garante que o sistema certo foi construído (segundo a necessidade do usuário).",
+        "C) Não há diferença; são sinônimos.",
+        "D) Verificação é feita pelo desenvolvedor, Validação pelo marketing."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Verificação: 'Did we build the system right?'. Validação: 'Did we build the right system?'.",
+      "source_evidence": [
+        {
+          "file_name": "sistema.txt",
+          "exact_snippet": "Verificação e Validação são processos distintos."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Análise."
+    },
+    {
+      "id": "SOC_007",
+      "topic": "Eng. Social",
+      "difficulty": "advanced",
+      "question": "Qual é a primeira fase de um ataque planejado de Engenharia Social?",
+      "options": [
+        "A) Exploração da confiança.",
+        "B) Coleta de informações (Reconhecimento).",
+        "C) Execução do malware.",
+        "D) Retirada e limpeza de rastros."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Antes de interagir, o atacante estuda o alvo (redes sociais, organogramas, lixo) para criar um pretexto convincente.",
+      "source_evidence": [
+        {
+          "file_name": "gcv.txt",
+          "exact_snippet": "Fases: Coleta de informações, Estabelecimento de relação, Exploração, Execução."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "GCV_014",
+      "topic": "Gestão de Ciclo de Vida",
+      "difficulty": "intermediate",
+      "question": "O estágio de 'Produção' foca em:",
+      "options": [
+        "A) Projetar o primeiro protótipo.",
+        "B) Fabricar o sistema em escala e realizar a aceitação inicial.",
+        "C) Operar o sistema em combate.",
+        "D) Reciclar os materiais do sistema."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Produção é a fase de manufatura e replicação do design aprovado no estágio de desenvolvimento.",
+      "source_evidence": [
+        {
+          "file_name": "ciclo_vida.txt",
+          "exact_snippet": "Estágio de Produção: Manufatura do sistema."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOC_008",
+      "topic": "Eng. Social",
+      "difficulty": "intermediate",
+      "question": "O 'Smishing' é um ataque de phishing realizado via:",
+      "options": [
+        "A) Redes Wi-Fi públicas.",
+        "B) Mensagens de texto (SMS).",
+        "C) Chamadas de vídeo.",
+        "D) Impressoras de rede."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Smishing = SMS Phishing.",
+      "source_evidence": [
+        {
+          "file_name": "gcv.txt",
+          "exact_snippet": "Smishing: Phishing via SMS."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "GCV_015",
+      "topic": "Gestão de Ciclo de Vida",
+      "difficulty": "advanced",
+      "question": "A 'Arquitetura de Sistema' é um produto de qual estágio?",
+      "options": [
+        "A) Conceito.",
+        "B) Desenvolvimento.",
+        "C) Produção.",
+        "D) Operação."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Embora diretrizes surjam no conceito, a definição formal da arquitetura (lógica e física) ocorre no Desenvolvimento.",
+      "source_evidence": [
+        {
+          "file_name": "ciclo_vida.txt",
+          "exact_snippet": "Desenvolvimento inclui definição da arquitetura."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOC_009",
+      "topic": "Eng. Social",
+      "difficulty": "advanced",
+      "question": "O que caracteriza o gatilho da 'Autoridade'?",
+      "options": [
+        "A) O atacante finge ser um subordinado em apuros.",
+        "B) O atacante usa títulos, uniformes ou jargão técnico para intimidar e obter obediência.",
+        "C) O atacante pede um favor humilde.",
+        "D) O atacante oferece dinheiro em troca de senhas."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "As pessoas tendem a obedecer a figuras de autoridade sem questionar a legitimidade da ordem.",
+      "source_evidence": [
+        {
+          "file_name": "gcv.txt",
+          "exact_snippet": "Autoridade: Tendência a obedecer figuras superiores."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "GCV_016",
+      "topic": "Gestão de Ciclo de Vida",
+      "difficulty": "advanced",
+      "question": "A característica 'Flexível' da EAC permite que ela:",
+      "options": [
+        "A) Seja alterada manualmente sem registro.",
+        "B) Acomode mudanças nos requisitos ou no escopo do projeto sem precisar ser totalmente refeita.",
+        "C) Use moedas flutuantes sem conversão.",
+        "D) Seja ignorada pela alta gestão."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Flexibilidade é vital para lidar com a incerteza inerente a projetos complexos de longo prazo.",
+      "source_evidence": [
+        {
+          "file_name": "gcv.txt",
+          "exact_snippet": "Flexível – deve permitir ajustes conforme o projeto evolui."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Aplicação."
+    },
+    {
+      "id": "SOV_001",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "intermediate",
+      "question": "Conforme a doutrina da Unidade 01, qual a principal função de um Sistema Operacional (SO) em relação aos usuários e aplicações?",
+      "options": [
+        "A) Aumentar a complexidade do hardware para segurança.",
+        "B) Esconder a complexidade do hardware, oferecendo interfaces padronizadas e intuitivas.",
+        "C) Substituir a necessidade de processadores e memória RAM.",
+        "D) Funcionar apenas como um editor de textos avançado."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Uma das principais funções do sistema operacional é esconder a complexidade do hardware. Os usuários e aplicações utilizam interfaces padronizadas, consistentes e intuitivas, oferecidas pelo sistema operacional.' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "Uma das principais funções do sistema operacional é esconder\na complexidade do hardware."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_002",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "advanced",
+      "question": "Sobre o histórico do Unix (1969), quais conceitos fundamentais foram introduzidos por Ken Thompson e Dennis Ritchie?",
+      "options": [
+        "A) Monotarefa e interface exclusivamente gráfica.",
+        "B) Multitarefa, multiusuário e a filosofia de que 'tudo é um arquivo'.",
+        "C) Uso exclusivo de software proprietário e fechado.",
+        "D) Criação do primeiro navegador web da história."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'O Unix introduziu conceitos fundamentais como multitarefa, multiusuário e a filosofia de que \"tudo é um arquivo\".' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "multiusuário e a filosofia de que \"tudo é um arquivo\".\n- O Projeto GNU (1983): Richard Stallman fundou a Free Sof"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_003",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "intermediate",
+      "question": "Qual era o objetivo principal de Richard Stallman ao fundar a Free Software Foundation (FSF) em 1983?",
+      "options": [
+        "A) Vender licenças de software para grandes empresas.",
+        "B) Criar um sistema operacional totalmente livre através do Projeto GNU.",
+        "C) Desenvolver o kernel Linux de forma isolada.",
+        "D) Proibir o uso de computadores pessoais."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Richard Stallman fundou a Free Software Foundation (FSF) e iniciou o projeto GNU (GNU's Not Unix). O objetivo era criar um sistema operacional totalmente livre.' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "era criar um sistema operacional totalmente livre. Eles criar"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_004",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "advanced",
+      "question": "Como é definida a 'Liberdade 1' dentro da filosofia do software livre?",
+      "options": [
+        "A) A liberdade para executar o programa com qualquer propósito.",
+        "B) A liberdade para estudar como o programa funciona e adaptá-lo às suas necessidades.",
+        "C) A liberdade para redistribuir cópias do programa para ajudar amigos.",
+        "D) A liberdade para melhorar o programa e distribuir melhorias."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Liberdade 1: a liberdade para estudar como o programa funciona e adaptá-lo às suas necessidades. O acesso ao código-fonte é um pré-requisito para que isto possa acontecer.' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "- Liberdade 1: a liberdade para estudar como o programa\nfunciona e adaptá-lo às suas necessidade"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_005",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "advanced",
+      "question": "O termo 'Copyleft' é descrito como uma extensão das 4 liberdades básicas. Qual a sua principal característica?",
+      "options": [
+        "A) Permite que o software se torne proprietário após modificações.",
+        "B) Obriga quem distribui o software a passar adiante a liberdade de copiar e modificar novamente o programa.",
+        "C) Garante a gratuidade total de qualquer software livre.",
+        "D) Proíbe qualquer tipo de alteração no código-fonte original."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'O copyleft diz que qualquer um que distribui o software, com ou sem modificações, tem que passar adiante a liberdade de copiar e modificar novamente o programa. O copyleft garante que todos os usuários tem liberdade.' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "modificações, tem que passar adiante a liberdade de copiar e modificar\nnovamente o programa. O copyleft garante que todos os usuários tem\nliberdade.” – ou seja:"
+        }
+      ],
+      "coverage_note": "Compreensão."
+    },
+    {
+      "id": "SOV_006",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "intermediate",
+      "question": "Qual a diferença fundamental entre a Licença GPL e a Licença GFDL no ecossistema GNU?",
+      "options": [
+        "A) A GPL é para hardware, a GFDL é para software.",
+        "B) A GPL regulamenta programas; a GFDL é voltada para garantir a liberdade de manuais e documentos.",
+        "C) A GPL é paga, a GFDL é gratuita.",
+        "D) Não há diferença; ambas tratam apenas de código-fonte."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'A licença mais difundida é a Licença Pública Geral (ou GPL)... A Licença de Documentação Livre GNU (GFDL) é uma licença de documentação, que mantém para o autor e editor uma forma de ter crédito por seu trabalho.' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "não. A Licença de Documentação Livre GNU (GFDL) é uma licença de\ndocumen"
+        }
+      ],
+      "coverage_note": "Análise."
+    },
+    {
+      "id": "SOV_007",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "intermediate",
+      "question": "O que define tecnicamente uma 'Distribuição Linux'?",
+      "options": [
+        "A) É apenas o kernel puro desenvolvido por Linus Torvalds.",
+        "B) É a combinação do kernel com diversos softwares e ferramentas (interfaces, editores, servidores), formando um sistema completo.",
+        "C) É um programa usado apenas para baixar outros softwares.",
+        "D) É o nome dado exclusivamente ao hardware que roda Linux."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Uma Distribuição Linux é a combinação do kernel com esses diversos softwares, formando um sistema operacional completo e pronto para uso.' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "diversos softwares, formando um sistema operacional completo e\npronto para uso.\n\n19\n\n\fDistribuições Linux\n\nDistribuições Livres de Custos"
+        }
+      ],
+      "coverage_note": "Conhecimento."
+    },
+    {
+      "id": "SOV_008",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "intermediate",
+      "question": "A norma FHS (Filesystem Hierarchy Standard) tem qual objetivo principal no Linux?",
+      "options": [
+        "A) Aumentar a velocidade da CPU.",
+        "B) Definir a organização dos diretórios do sistema, garantindo uma estrutura previsível e consistente.",
+        "C) Traduzir comandos Linux para o Windows.",
+        "D) Criar novas linguagens de programação."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'O FHS (Filesystem Hierarchy Standard) define a organização dos diretórios do sistema, estabelecendo onde cada tipo de arquivo deve ser armazenado.' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "O FHS (Filesystem Hierarchy Standard) define a organização dos diretórios do\nsistema"
+        }
+      ],
+      "coverage_note": "Conhecimento."
+    },
+    {
+      "id": "SOV_009",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "intermediate",
+      "question": "Dentro da hierarquia de diretórios, para que serve o diretório '/etc'?",
+      "options": [
+        "A) Armazenar comandos essenciais como ls e cp.",
+        "B) Guardar arquivos de inicialização do Kernel.",
+        "C) Conter os arquivos de configuração do sistema.",
+        "D) Armazenar logs e dados variáveis."
+      ],
+      "correct_answer": "C",
+      "answer_explanation": "Justificativa Literal: '/etc -> Arquivos de configuração do sistema' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "/etc → Arquivos de configuração do sistema"
+        }
+      ],
+      "coverage_note": "Conhecimento."
+    },
+    {
+      "id": "SOV_010",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "advanced",
+      "question": "Qual diretório é considerado 'virtual' por armazenar informações do sistema e processos em tempo de execução?",
+      "options": [
+        "A) /bin",
+        "B) /proc",
+        "C) /root",
+        "D) /usr"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: '/proc -> Informações do sistema e processos (virtual)' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "/proc → Informações do sistema e processos (virtual)"
+        }
+      ],
+      "coverage_note": "Conhecimento."
+    },
+    {
+      "id": "SOV_011",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "intermediate",
+      "question": "Qual a diferença entre o diretório '/bin' e o '/sbin'?",
+      "options": [
+        "A) /bin é para backup, /sbin para sistema.",
+        "B) /bin contém comandos essenciais para todos os usuários; /sbin contém comandos administrativos para o root.",
+        "C) /bin é para binários do Windows, /sbin para Linux.",
+        "D) Não há diferença técnica entre eles."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: '/bin -> Comandos essenciais (ex: ls, cp, mv) ... /sbin -> Comandos administrativos (ex: fdisk, reboot)' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "/sbin → Comandos administrativos"
+        }
+      ],
+      "coverage_note": "Análise."
+    },
+    {
+      "id": "SOV_012",
+      "topic": "Arquitetura",
+      "difficulty": "advanced",
+      "question": "No processo de boot, qual a principal diferença entre o BIOS e o UEFI em termos de particionamento?",
+      "options": [
+        "A) BIOS usa GPT; UEFI usa MBR.",
+        "B) BIOS suporta MBR (até 2TB); UEFI suporta GPT (até 9,4 ZB e 128 partições).",
+        "C) Ambos suportam apenas MBR.",
+        "D) UEFI não utiliza tabelas de partição."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'BIOS ... Utiliza partição MBR (Master Boot Record) – discos de até 2TB ... UEFI ... Suporta tabela de partição GPT (GUID Partition Table) – discos de até 9,4 ZB e 128 partições' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "BIOS (Basic Input/Output\nSystem, ou Sistema Básico de Entrada/Saída) identifica e realiza testes\nsimples nos itens fundamentais de hardware, como processador,\nmemória e disco.\n\n3\n\n\f2 – ARQUITETURA DE SISTEMA\n\n2.1 Identificação e configuração de hardware.\nO sistema operacional, por meio do kernel, atua como\nintermediário entre o hardware e as aplicações. Ele é responsavél por:\n- Identificar os dispositivos de hardware;\n- Gerenciar recursos (CPU, memória e dispositivos de E/S);\n- Controlar a comunicação entre o software e hardware;\n- Garantir o funcionamento correto do sistema.\nSem o kernel, o software não consegue interagir com o hardware.\n\n4\n\n\f2 – ARQUITETURA DE SISTEMA\nPrincipais componentes de hardware\nCPU – Unidade central de processamento\n- Arquitetura: x86_64, ARM\n- comando: lscpu, top\nMemória\n- Armazena dados temporários (RAM – volátil)\n- Acesso rápido para execução de processos\n- Memória virtual: uso de swap em disco\n- comando: free -h, vmstat\n\n5\n\n\f2 – ARQUITETURA DE SISTEMA\n\nPrincipais componentes de hardware\nDisco\n- Armazenamento permanente de dados (HD, SSD, NVMe)\n- Organização: partições e sistemas de arquivos\n- Montagem em diretórios\n- comando: lsblk, fdisk -l, df -h\nRede\n- Comunicação entre sistemas\n- Interfaces: Ethernet, Wi-Fi\n- Endereçamento: IP e MAC\n- comando: ip a, ip route, ss -tuln\n\n6\n\n\f2 – ARQUITETURA DE SISTEMA\nPrincipais componentes de hardware\nPCIe\n- Barramento de alta velocidade\n- Conecta dispositivos ao sistema (placa de vídeo, placas de\nrede, controladoras, etc)\n- comando: lspci, lsusb\nFirmware\n- Software embarcado no hardware\n- BIOS/UEFI controla incialização (boot)\n- Realiza teste de hardware\n- comando: dmidecode, dmesg\n\n7\n\n\f2 – ARQUITETURA DE SISTEMA\nMódulos x Drivers\nNo sistema operacional Linux, os drivers são implementados como módulos\ndo kernel, responsáveis por permitir a comunicação entre o sistema e o\nhardware.\nNo Windows, os drivers geralmente são fornecidos pelos próprios\nfabricantes dos dispositivos. Já no Linux, muitos drivers são desenvolvidos pela\ncomunidade e integrados ao kernel.\nDevido a essa diferença, alguns dispositivos podem não possuir suporte\ncompleto no Linux, principalmente hardwares mais antigos ou específicos.\n\n💡\n\nSem driver (ou módulo), o sistema operacional não consegue utilizar o\nhardware.\n\n8\n\n\f2.2 – Inicialização (boot) do sistema\n\n9\n\n\f2.2 – Inicialização (boot) do sistema\n1 - BIOS/UEFI\nBIOS (Basic Input/Output System) – é o firmware legado presente em\nhardware fabricado antes de ~2010.\nCaracterísticas:\n- Utiliza partição MBR (Master Boot Record) – discos de até 2TB e 4\npartições primária\n- Realiza o POST (power-on self test), testa o hardware\n- Define a ordem do boot\n- Interface simples (geralmente sem gráficos)\n- Executado ao ligar o computador\nÉ o primeiro software a ser executado no sistema.\n\n10\n\n\f2.2 – Inicialização (boot) do sistema\n1 - BIOS/UEFI\nUEFI (Unified Extensible Firmware Interface) – é o firmware moderno\npresente na maioria dos equipamentos.\nCaracterísticas:\n- Suporta tabela de partição GPT"
+        }
+      ],
+      "coverage_note": "Análise."
+    },
+    {
+      "id": "SOV_013",
+      "topic": "Arquitetura",
+      "difficulty": "advanced",
+      "question": "O que caracteriza o 'Secure Boot' presente no firmware UEFI?",
+      "options": [
+        "A) Um boot que exige senha biométrica.",
+        "B) Proteção contra boot malicioso, protegendo o sistema contra malware no momento da inicialização.",
+        "C) Um modo de boot que desativa o HD.",
+        "D) Uma interface gráfica para configurar o mouse."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Secure boot, proteção contra boot malicioso, protege contra malware no boot' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "Secure boot, proteção contra boot malicioso"
+        }
+      ],
+      "coverage_note": "Compreensão."
+    },
+    {
+      "id": "SOV_014",
+      "topic": "Arquitetura",
+      "difficulty": "intermediate",
+      "question": "Qual o papel do GRUB (Grand Unified Bootloader) na arquitetura do sistema?",
+      "options": [
+        "A) Funcionar como o kernel do sistema.",
+        "B) Atuar como ponte entre o firmware (BIOS/UEFI) e o kernel, localizando e carregando o SO na memória.",
+        "C) Substituir a interface gráfica GNOME.",
+        "D) Gerenciar a instalação de pacotes .deb."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'É o carregador de inicialização responsável por receber o controle da BIOS/UEFI, localizar e carregar o sistema operacional na memória... faz a ponte entre o firmware e o kernel.' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "faz a ponte entre o firmware (BIOS/UEFI) e o kernel"
+        }
+      ],
+      "coverage_note": "Compreensão."
+    },
+    {
+      "id": "SOV_015",
+      "topic": "Arquitetura",
+      "difficulty": "advanced",
+      "question": "Sobre o 'initramfs' (Initial RAM Filesystem), qual sua função crucial no boot?",
+      "options": [
+        "A) Armazenar permanentemente os arquivos do usuário.",
+        "B) Fornecer um ambiente mínimo em RAM para carregar drivers essenciais e montar o filesystem raiz definitivo.",
+        "C) Substituir a memória swap do disco.",
+        "D) Funcionar como o servidor de interface gráfica."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'É um sistema de arquivos temporário carregado na memória RAM durante o boot... Fornece um ambiente mínimo para montar o filesystem raiz definitivo.' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "sistema principal. Fornece um ambiente mínimo para montar o filesyst"
+        }
+      ],
+      "coverage_note": "Compreensão."
+    },
+    {
+      "id": "SOV_016",
+      "topic": "Arquitetura",
+      "difficulty": "advanced",
+      "question": "No systemd, o que substitui os antigos 'runlevels' e define o estado operacional do sistema?",
+      "options": [
+        "A) Módulos.",
+        "B) Targets.",
+        "C) Inodes.",
+        "D) Partições."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Targets ... define quais serviços estão ativos; e substitui os antigos runlevels (níveis de execução do sistema).' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "substitui os antigos runlevels (níveis de execução do sistema)."
+        }
+      ],
+      "coverage_note": "Conhecimento."
+    },
+    {
+      "id": "SOV_017",
+      "topic": "Arquitetura",
+      "difficulty": "intermediate",
+      "question": "Qual comando do systemd é utilizado para o modo terminal sem interface gráfica?",
+      "options": [
+        "A) graphical.target",
+        "B) multi-user.target",
+        "C) rescue.target",
+        "D) poweroff.target"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'multi-user.target: modo terminal (sem interface gráfica)' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "multi-user.target: modo terminal (sem interface gráfica)"
+        }
+      ],
+      "coverage_note": "Conhecimento."
+    },
+    {
+      "id": "SOV_018",
+      "topic": "Pacotes",
+      "difficulty": "advanced",
+      "question": "No particionamento MBR, qual a função da 'Partição Estendida'?",
+      "options": [
+        "A) Armazenar arquivos de sistema diretamente.",
+        "B) Funcionar como um contêiner para criar várias partições lógicas, quebrando o limite de 4 slots primários.",
+        "C) Aumentar a velocidade de leitura do disco.",
+        "D) Substituir a partição swap."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Estendida - é uma partição especial que funciona como um contêiner... Serve para \"quebrar\" o limite de 4 partições do MBR.' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "- Serve para “quebrar” o limite de 4 partições do M"
+        }
+      ],
+      "coverage_note": "Compreensão."
+    },
+    {
+      "id": "SOV_019",
+      "topic": "Pacotes",
+      "difficulty": "intermediate",
+      "question": "Qual a diferença técnica fundamental entre o dpkg e o APT no gerenciamento de pacotes Debian?",
+      "options": [
+        "A) dpkg resolve dependências; APT não.",
+        "B) dpkg atua em baixo nível (não resolve dependências); APT é de alto nível e as resolve automaticamente via repositórios.",
+        "C) APT é apenas para interface gráfica; dpkg para terminal.",
+        "D) São o mesmo comando com nomes diferentes."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'O dpkg... não verifica se falta alguma dependência. O APT é mais inteligente: ele baixa, instala e resolve tudo sozinho, usando o dpkg por trás.' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "O dpkg"
+        }
+      ],
+      "coverage_note": "Análise."
+    },
+    {
+      "id": "SOV_020",
+      "topic": "Pacotes",
+      "difficulty": "advanced",
+      "question": "O que representa o componente 'main' em uma linha do arquivo sources.list do APT?",
+      "options": [
+        "A) Softwares proprietários e pagos.",
+        "B) Softwares livres que cumprem totalmente as diretrizes do Debian.",
+        "C) Softwares que dependem de drivers não-livres.",
+        "D) O endereço IP do servidor de repositório."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'componentes — main (livre), contrib (deps não-livre), non-free (proprietário)' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "main (livre)"
+        }
+      ],
+      "coverage_note": "Conhecimento."
+    },
+    {
+      "id": "SOV_021",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "intermediate",
+      "question": "Conforme o material da UN 01, como é definido tecnicamente o Kernel?",
+      "options": [
+        "A) É a interface gráfica do usuário.",
+        "B) É o núcleo do sistema, responsável por gerenciar os recursos do hardware e a comunicação entre hardware e software.",
+        "C) É um programa de terceiros usado para instalar drivers.",
+        "D) É o nome dado ao conjunto de documentos e manuais do Linux."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'O Kernel é o núcleo do sistema operacional... responsável por gerenciar os recursos do hardware (como CPU, memória e dispositivos de entrada/saída) e servir como ponte entre o hardware e o software.' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "O kernel é o núcleo do sistema operacional"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_022",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "advanced",
+      "question": "Sobre a Liberdade 3 da FSF, o que ela permite especificamente ao usuário?",
+      "options": [
+        "A) Estudar o código apenas para uso privado.",
+        "B) Melhorar o programa e liberar suas melhorias para o público, beneficiando toda a comunidade.",
+        "C) Executar o programa apenas em fins militares.",
+        "D) Cobrar pela licença de uso do software original."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Liberdade 3: a liberdade para melhorar o programa e liberar suas melhorias para o público, de modo que toda a comunidade possa ser beneficiada.' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "- Liberdade 3: a liberdade para melhorar o programa, e distribuir\nsuas melhorias para o p"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_023",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "intermediate",
+      "question": "O termo 'Open Source' (Código Aberto) foi criado com qual objetivo estratégico em 1998?",
+      "options": [
+        "A) Combater a pirataria de software.",
+        "B) Substituir o termo 'Software Livre' por algo mais aceitável no mundo corporativo, focando na eficiência do modelo de desenvolvimento.",
+        "C) Proibir o uso comercial do Linux.",
+        "D) Criar um sistema operacional exclusivo para servidores web."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'O termo Open Source foi criado por Eric S. Raymond e outros para tornar o conceito de Software Livre mais palatável para o mundo corporativo... focando mais nas vantagens técnicas e de desenvolvimento.' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "tornar o conceito de Software Livre mais palatável para o mundo corporativo"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_024",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "intermediate",
+      "question": "Qual a principal vantagem da estabilidade do Linux mencionada na UN 01?",
+      "options": [
+        "A) O sistema precisa ser reiniciado diariamente para limpar a memória.",
+        "B) A capacidade de rodar por anos sem interrupções, sendo ideal para servidores e sistemas de missão crítica.",
+        "C) O fato de ser um sistema exclusivamente monotarefa.",
+        "D) A necessidade de hardware de última geração para funcionar."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Estabilidade: O Linux é extremamente estável, podendo rodar por anos sem a necessidade de reinicialização. Isso o torna ideal para servidores e sistemas de missão crítica.' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "O Linux é extremamente estável, podendo rodar por anos sem a necessidade de reinicialização."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_025",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "intermediate",
+      "question": "Sobre a flexibilidade do Linux, o que o diferencia de sistemas proprietários como o Windows?",
+      "options": [
+        "A) O Windows permite alterar o kernel livremente.",
+        "B) O Linux pode ser adaptado para rodar em quase qualquer hardware, desde supercomputadores até roteadores e smartphones.",
+        "C) O Linux não suporta conexão com a internet.",
+        "D) O Linux é travado para evitar que o usuário estrague o sistema."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Flexibilidade: Ele pode ser adaptado para rodar em quase qualquer tipo de hardware... Isso é possível porque o código-fonte está disponível para ser modificado.' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "Ele pode ser adaptado para rodar em quase qualquer tipo de hardware"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_026",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "advanced",
+      "question": "Qual diretório do Linux armazena as bibliotecas compartilhadas essenciais para o sistema?",
+      "options": [
+        "A) /home",
+        "B) /lib",
+        "C) /var",
+        "D) /root"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: '/lib -> Bibliotecas compartilhadas essenciais do sistema' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "/lib → Bibliotecas essenciais do sistema\n25\n\n\fHierarquia"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_027",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "intermediate",
+      "question": "Para que serve o diretório '/home' no sistema de arquivos Linux?",
+      "options": [
+        "A) Para armazenar os executáveis do kernel.",
+        "B) Para guardar os diretórios pessoais dos usuários comuns (documentos, configurações).",
+        "C) Para arquivos temporários que são deletados no boot.",
+        "D) Para montagem de pen drives e CDs."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: '/home -> Diretórios pessoais dos usuários' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "/home → Diretórios dos usuários comuns\n/l"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_028",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "advanced",
+      "question": "O diretório '/var' é caracterizado por armazenar quais tipos de dados?",
+      "options": [
+        "A) Arquivos de configuração que nunca mudam.",
+        "B) Dados variáveis do sistema, como arquivos de log, filas de impressão e bancos de dados.",
+        "C) Os manuais do sistema no formato PDF.",
+        "D) Os comandos administrativos exclusivos do root."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: '/var -> Arquivos de dados variáveis (logs, filas de impressão, etc.)' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "/var → Logs e dados variáveis (ex:"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_029",
+      "topic": "Sistemas Operacionais",
+      "difficulty": "advanced",
+      "question": "Qual diretório é utilizado para pontos de montagem de sistemas de arquivos temporários, como dispositivos removíveis?",
+      "options": [
+        "A) /opt",
+        "B) /mnt",
+        "C) /boot",
+        "D) /dev"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: '/mnt -> Pontos de montagem temporários' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "/mnt → Montagens temporárias manuais\n/"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_030",
+      "topic": "Arquitetura",
+      "difficulty": "intermediate",
+      "question": "Na estrutura do computador, qual a relação fundamental entre Hardware e Software?",
+      "options": [
+        "A) Eles funcionam de forma independente, sem comunicação.",
+        "B) O hardware fornece os recursos; o software controla e coordena o uso desses recursos para os usuários.",
+        "C) O hardware é o único responsável por processar textos e imagens.",
+        "D) O software cria a energia elétrica necessária para o hardware."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Hardware fornece os recursos computacionais (CPU, memória, entrada/saída). Software ... define como esses recursos serão utilizados.' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "Hardware fornece os recursos computacionais"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_031",
+      "topic": "Arquitetura",
+      "difficulty": "advanced",
+      "question": "O Kernel é descrito como um conjunto de camadas. Quais as principais funções destas camadas?",
+      "options": [
+        "A) Desenhar janelas na tela e tocar sons.",
+        "B) Gerenciamento de memória, processos, drivers de dispositivo e chamadas de sistema (System Calls).",
+        "C) Apenas ler arquivos do disco rígido.",
+        "D) Traduzir textos de inglês para português."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Gerenciamento de memória, gerenciamento de processos, drivers de dispositivo e chamadas de sistema (System Calls).' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "Gerenciamento de memória, gerenciamento de processos"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_032",
+      "topic": "Arquitetura",
+      "difficulty": "intermediate",
+      "question": "O que é o 'Shell' dentro da arquitetura do sistema Linux?",
+      "options": [
+        "A) É o local físico onde o processador é encaixado.",
+        "B) É o intérprete de comandos que serve de interface entre o usuário e o sistema operacional.",
+        "C) É um tipo de vírus que ataca o kernel.",
+        "D) É a BIOS do computador."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'É o intérprete de comandos; serve de interface entre o usuário e o sistema operacional.' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "É o intérprete de comandos; serve de interface entre o usuário e o sistema operacional."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_033",
+      "topic": "Arquitetura",
+      "difficulty": "advanced",
+      "question": "Qual a sequência lógica correta do processo de boot em um sistema Linux?",
+      "options": [
+        "A) Kernel -> GRUB -> BIOS -> systemd.",
+        "B) BIOS/UEFI -> Carregador de Boot (GRUB) -> Kernel -> systemd.",
+        "C) systemd -> Kernel -> GRUB -> BIOS.",
+        "D) BIOS -> systemd -> Kernel -> GRUB."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Sequência de Boot: BIOS/UEFI -> Carregador de Boot (GRUB) -> Kernel -> systemd' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "Sequência de Boot: BIOS/UEFI -> Carregador de Boot (GRUB) -> Kernel -> systemd"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_034",
+      "topic": "Arquitetura",
+      "difficulty": "advanced",
+      "question": "Qual a principal tarefa do BIOS (Basic Input/Output System) ao ser ligado?",
+      "options": [
+        "A) Carregar a interface gráfica GNOME.",
+        "B) Realizar o POST (Power-On Self-Test) para verificar a integridade do hardware.",
+        "C) Instalar o sistema operacional no HD.",
+        "D) Configurar a rede Wi-Fi."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'BIOS ... Localizada na placa-mãe ... Realiza o POST (Power-On Self-Test) para verificar a integridade do hardware.' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "- Realiza o POST (power-on self tes"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_035",
+      "topic": "Arquitetura",
+      "difficulty": "advanced",
+      "question": "O que acontece durante a fase 'Kernel Init' no processo de boot?",
+      "options": [
+        "A) O BIOS desliga o computador.",
+        "B) O Kernel inicializa os drivers de hardware, monta o sistema de arquivos raiz e inicia o processo 'init' ou 'systemd'.",
+        "C) O usuário digita sua senha de login.",
+        "D) O GRUB mostra o menu de escolha do sistema."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Kernel Init: O kernel inicializa drivers, monta o sistema de arquivos raiz e inicia o primeiro processo do sistema (PID 1), o init ou systemd.' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "O kernel inicializa drivers, monta o sistema de arquivos raiz e inicia o primeiro processo"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_036",
+      "topic": "Arquitetura",
+      "difficulty": "advanced",
+      "question": "No systemd, para que serve o 'rescue.target'?",
+      "options": [
+        "A) Para jogar games levemente.",
+        "B) Para modo de recuperação do sistema em caso de falhas críticas.",
+        "C) Para acessar a internet via rede Wi-Fi.",
+        "D) Para desligar o computador com segurança."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'rescue.target: modo de recuperação (single user mode)' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "- rescue.target: modo de manutençã"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_037",
+      "topic": "Arquitetura",
+      "difficulty": "advanced",
+      "question": "Qual comando systemctl é usado para reiniciar o sistema?",
+      "options": [
+        "A) systemctl halt",
+        "B) systemctl reboot",
+        "C) systemctl suspend",
+        "D) systemctl reload"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'systemctl reboot -> Reinicia o sistema' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "systemctl reboot -> Reinicia o sistema"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_038",
+      "topic": "Arquitetura",
+      "difficulty": "advanced",
+      "question": "Como o systemd gerencia a ordem de início dos serviços?",
+      "options": [
+        "A) Por ordem alfabética de nomes.",
+        "B) Por dependências, onde um serviço só inicia se os serviços dos quais ele depende estiverem ativos.",
+        "C) Aleatoriamente a cada boot.",
+        "D) O usuário deve iniciar cada um manualmente via terminal."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'systemd ... Gerencia a ordem de início dos serviços através de dependências.' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "Gerencia a ordem de início dos serviços através de dependências."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_039",
+      "topic": "Arquitetura",
+      "difficulty": "intermediate",
+      "question": "O que define um sistema operacional como 'Multitarefa'?",
+      "options": [
+        "A) Capacidade de rodar em vários computadores ao mesmo tempo.",
+        "B) Capacidade de executar múltiplos processos simultaneamente, dividindo o tempo de CPU entre eles.",
+        "C) Permite que vários usuários usem o mesmo teclado.",
+        "D) É um sistema que nunca apresenta erros."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Multitarefa: Capacidade do sistema operacional de executar múltiplos processos simultaneamente.' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "Capacidade do sistema operacional de executar múltiplos processos simultaneamente."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_040",
+      "topic": "Arquitetura",
+      "difficulty": "intermediate",
+      "question": "Qual a principal característica de um sistema 'Multiusuário'?",
+      "options": [
+        "A) Ele só pode ser usado por uma pessoa por vez.",
+        "B) Permite que múltiplos usuários acessem e utilizem os recursos do sistema simultaneamente, mantendo o isolamento entre eles.",
+        "C) É um sistema que exige o uso de mouse e teclado.",
+        "D) É um sistema que não requer senha de acesso."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Multiusuário: Permite que múltiplos usuários acessem o sistema ao mesmo tempo, garantindo a segurança e o isolamento dos dados de cada um.' - Fonte: UN-01-Linux.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-01-Linux.pdf",
+          "exact_snippet": "permite que múltiplos programas sejam\nexecutados simultaneament"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_041",
+      "topic": "Arquitetura",
+      "difficulty": "advanced",
+      "question": "No systemd, como são chamados os arquivos de configuração que definem serviços, pontos de montagem e dispositivos?",
+      "options": [
+        "A) Scripts de Shell.",
+        "B) Units (Unidades).",
+        "C) Binários.",
+        "D) Manifestos."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'systemd ... utiliza arquivos de configuração chamados Units (unidades) para gerenciar o sistema.' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "utiliza arquivos de configuração chamados Units (unidades)"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_042",
+      "topic": "Arquitetura",
+      "difficulty": "advanced",
+      "question": "Qual a correspondência correta entre um 'Runlevel' do antigo SysVinit e um 'Target' do systemd?",
+      "options": [
+        "A) Runlevel 3 -> graphical.target",
+        "B) Runlevel 5 -> graphical.target",
+        "C) Runlevel 0 -> reboot.target",
+        "D) Runlevel 1 -> multi-user.target"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'graphical.target: modo gráfico (corresponde ao runlevel 5)' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "- graphical.target: modo gráfico (com interface); e\n- resc"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_043",
+      "topic": "Arquitetura",
+      "difficulty": "intermediate",
+      "question": "Qual modo de compatibilidade permite que um firmware UEFI execute sistemas operacionais projetados para o BIOS tradicional?",
+      "options": [
+        "A) Secure Boot.",
+        "B) CSM (Compatibility Support Module) ou BIOS Legacy.",
+        "C) Fast Boot.",
+        "D) GPT Mode."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'UEFI ... Possui modo de compatibilidade com BIOS (Legacy/CSM).' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "Possui modo de compatibilidade com BIOS (Legacy/CSM)"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_044",
+      "topic": "Arquitetura",
+      "difficulty": "intermediate",
+      "question": "Durante o POST, o que o firmware faz caso encontre um erro crítico de hardware?",
+      "options": [
+        "A) Formata o disco rígido.",
+        "B) Emite sinais sonoros (beeps) ou exibe mensagens de erro na tela, interrompendo o processo de inicialização.",
+        "C) Ignora o erro e continua o boot.",
+        "D) Reinicia o computador infinitamente sem avisar."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'POST ... Se houver erro, emite beeps ou mensagens de erro.' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "Se houver erro, emite beeps ou mensagens de erro."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_045",
+      "topic": "Arquitetura",
+      "difficulty": "advanced",
+      "question": "Qual comando é utilizado para visualizar as mensagens geradas pelo kernel durante e após a inicialização do sistema?",
+      "options": [
+        "A) ls -l",
+        "B) dmesg",
+        "C) top",
+        "D) ps aux"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'O comando dmesg permite visualizar as mensagens de inicialização do kernel armazenadas no buffer circular.' - Fonte: UN-02-Arquitetura-SO.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-02-Arquitetura-SO.pdf",
+          "exact_snippet": "O comando dmesg permite visualizar as mensagens de inicialização do kernel"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_046",
+      "topic": "Pacotes",
+      "difficulty": "intermediate",
+      "question": "De acordo com a UN 03, o que é uma partição de disco?",
+      "options": [
+        "A) Um tipo de hardware de memória RAM.",
+        "B) Uma divisão lógica de um disco físico, tratada pelo sistema operacional como uma unidade independente de armazenamento.",
+        "C) Um cabo de conexão entre o HD e a placa-mãe.",
+        "D) Um software de antivírus."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Uma partição é uma divisão lógica de um disco físico, tratada pelo sistema operacional como uma unidade independente de armazenamento.' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "Uma partição é uma divisão lógica de um disco físico"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_047",
+      "topic": "Pacotes",
+      "difficulty": "advanced",
+      "question": "No padrão MBR, qual a limitação de partições primárias se não for utilizada uma partição estendida?",
+      "options": [
+        "A) 128 partições.",
+        "B) No máximo 4 partições primárias.",
+        "C) Não há limite para partições primárias.",
+        "D) Apenas 1 partição primária é permitida."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'no MBR, até 4 partições primárias' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "no MBR, até 4 partições primárias"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_048",
+      "topic": "Pacotes",
+      "difficulty": "advanced",
+      "question": "Em um sistema Linux usando MBR, a partir de qual número as partições lógicas começam a ser nomeadas?",
+      "options": [
+        "A) /dev/sda1",
+        "B) /dev/sda5",
+        "C) /dev/sda0",
+        "D) /dev/sda4"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Numeração [das partições lógicas] começa em /dev/sda5' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "Numeração começa em /dev/sda5"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_049",
+      "topic": "Pacotes",
+      "difficulty": "intermediate",
+      "question": "Qual a limitação de capacidade de disco do padrão MBR devido ao endereçamento de 32 bits?",
+      "options": [
+        "A) 500 GB.",
+        "B) Limite de 2TB por disco.",
+        "C) 10 TB.",
+        "D) Sem limite prático."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Limite de disco [no MBR]: 2 TB (endereçamento de 32 bits)' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "- Limite de disco: 2 TB (endereçamento de\n32 bit"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_050",
+      "topic": "Pacotes",
+      "difficulty": "advanced",
+      "question": "Por que o GPT é considerado mais seguro que o MBR em relação à integridade da tabela de partições?",
+      "options": [
+        "A) Por ser um padrão mais antigo e testado.",
+        "B) Porque possui redundância, armazenando uma cópia de backup da tabela no final do disco.",
+        "C) Porque não permite a exclusão de arquivos.",
+        "D) Porque exige o uso de criptografia em todas as partições."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'O GPT ... possui redundância (mais seguro). ... Armazena cópia de backup da tabela no final do disco.' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "- Armazena cópia de backup da tabela no\nfinal do dis"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_051",
+      "topic": "Pacotes",
+      "difficulty": "intermediate",
+      "question": "Qual a principal diferença na configuração entre o GRUB Legacy e o GRUB 2?",
+      "options": [
+        "A) GRUB 2 é manual; Legacy é automático.",
+        "B) No GRUB Legacy a configuração era manual (menu.lst); no GRUB 2 a geração do arquivo principal (grub.cfg) é automatizada por scripts.",
+        "C) O GRUB 2 não possui arquivo de configuração.",
+        "D) O GRUB Legacy era escrito em Python; o GRUB 2 em C++."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'GRUB (Legacy): Configuração Manual (menu.lst) ... GRUB2: Configuração Automática (grub.cfg)' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "Automática (grub.cfg)\n\nSuporte a U"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Análise."
+    },
+    {
+      "id": "SOV_052",
+      "topic": "Pacotes",
+      "difficulty": "advanced",
+      "question": "O que caracteriza as Bibliotecas Dinâmicas (.so) em relação ao tamanho dos programas?",
+      "options": [
+        "A) Aumentam o tamanho do executável, pois são incluídas na compilação.",
+        "B) Reduzem o tamanho dos programas, pois são carregadas apenas em tempo de execução e compartilhadas entre vários processos.",
+        "C) Tornam o programa independente de arquivos externos.",
+        "D) São bibliotecas que só funcionam em sistemas de 32 bits."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Bibliotecas Dinâmicas (.so) ... Carregadas em tempo de execução; e compartilhadas entre vários programas. ... Reduzem o tamanho dos programas.' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "Redução de tamanho dos programas"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_053",
+      "topic": "Pacotes",
+      "difficulty": "advanced",
+      "question": "Qual comando é utilizado para listar as bibliotecas dinâmicas de que um determinado executável depende?",
+      "options": [
+        "A) ls -l",
+        "B) ldd",
+        "C) cat",
+        "D) grep"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Comando ldd /bin/ls [exemplo] ... permite ver quais bibliotecas dinâmicas o programa precisa.' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "ldd /bin/ls"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_054",
+      "topic": "Pacotes",
+      "difficulty": "intermediate",
+      "question": "Por que o APT é considerado uma ferramenta de 'alto nível' em comparação ao dpkg?",
+      "options": [
+        "A) Porque só roda em servidores potentes.",
+        "B) Porque automatiza a resolução de dependências e gerencia repositórios, facilitando a vida do administrador.",
+        "C) Porque possui interface gráfica obrigatória.",
+        "D) Porque é mais antigo e estável."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'O APT (Advanced Package Tool) é um gerenciador de pacotes de alto nível que automatiza a instalação... resolvendo dependências e utilizando repositórios.' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "É um gerenciador de pacotes de alto nível usado em sistemas base"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_055",
+      "topic": "Pacotes",
+      "difficulty": "advanced",
+      "question": "Qual a diferença entre os comandos 'apt update' e 'apt upgrade'?",
+      "options": [
+        "A) 'update' instala o sistema; 'upgrade' atualiza a lista.",
+        "B) 'update' sincroniza a lista de pacotes dos repositórios; 'upgrade' baixa e instala as versões mais novas dos pacotes já instalados.",
+        "C) Não há diferença; são sinônimos.",
+        "D) 'update' remove pacotes; 'upgrade' os instala."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'apt update -> sincroniza a lista de pacotes ... apt upgrade -> baixa e instala as versões mais novas.' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "apt update -> sincroniza a lista de pacotes"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Análise."
+    },
+    {
+      "id": "SOV_056",
+      "topic": "Pacotes",
+      "difficulty": "advanced",
+      "question": "No arquivo 'sources.list', o que caracteriza o componente 'non-free'?",
+      "options": [
+        "A) Pacotes gratuitos.",
+        "B) Softwares proprietários que não seguem as diretrizes de software livre do Debian.",
+        "C) Somente código-fonte.",
+        "D) Pacotes que não podem ser instalados."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'componentes — main (livre), contrib (deps não-livre), non-free (proprietário)' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "non-free (proprietário)"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_057",
+      "topic": "Pacotes",
+      "difficulty": "intermediate",
+      "question": "Na nomenclatura de um pacote RPM (ex: nginx-1.24.0-1.el9.x86_64.rpm), o que representa o campo 'x86_64'?",
+      "options": [
+        "A) O nome do software.",
+        "B) A versão do kernel.",
+        "C) A arquitetura do processador para a qual o pacote foi compilado.",
+        "D) O número de vezes que o pacote foi refeito."
+      ],
+      "correct_answer": "C",
+      "answer_explanation": "Justificativa Literal: 'nome-versão-release.arquitetura.rpm ... x86_64 — arquitetura' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "x86_64 — arquitetura"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_058",
+      "topic": "Pacotes",
+      "difficulty": "intermediate",
+      "question": "Qual a relação entre o YUM e o DNF em sistemas como Fedora e RHEL?",
+      "options": [
+        "A) São sistemas concorrentes incompatíveis.",
+        "B) O DNF é a evolução técnica do YUM, sendo mais rápido e eficiente na resolução de dependências.",
+        "C) O YUM é para desktops e o DNF para servidores.",
+        "D) O DNF foi descontinuado em favor do YUM."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'DNF (Dandified YUM) é a evolução do YUM, projetado para ser mais rápido, eficiente e confiável.' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "DNF (Dandified YUM)\nÉ a evolução do YUM"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_059",
+      "topic": "Pacotes",
+      "difficulty": "advanced",
+      "question": "Qual biblioteca o DNF utiliza para resolver dependências de forma mais inteligente e evitar conflitos?",
+      "options": [
+        "A) libsolv",
+        "B) libc6",
+        "C) libgnome",
+        "D) libpython"
+      ],
+      "correct_answer": "A",
+      "answer_explanation": "Justificativa Literal: 'DNF ... Usa biblioteca libsolv ... Resolve dependências de forma mais inteligente e evita conflitos.' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "Usa biblioteca libsolv"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_060",
+      "topic": "Pacotes",
+      "difficulty": "advanced",
+      "question": "Qual a finalidade do comando 'ldconfig' no Linux?",
+      "options": [
+        "A) Instalar novos pacotes .deb.",
+        "B) Atualizar os links e o cache de bibliotecas compartilhadas em tempo de execução.",
+        "C) Configurar o endereço IP da rede.",
+        "D) Formatar uma partição de disco."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Comando ldconfig ... gerencia automaticamente os links e o cache para bibliotecas dinâmicas.' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "ldconfig"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_061",
+      "topic": "Pacotes",
+      "difficulty": "intermediate",
+      "question": "Qual comando do APT é utilizado para pesquisar a descrição de pacotes nos repositórios antes de instalá-los?",
+      "options": [
+        "A) apt-cache search",
+        "B) apt install",
+        "C) apt remove",
+        "D) apt update"
+      ],
+      "correct_answer": "A",
+      "answer_explanation": "Justificativa Literal: 'apt-cache search -> pesquisa pacotes na lista.' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "apt-cache search -> pesquisa pacotes na lista."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_062",
+      "topic": "Pacotes",
+      "difficulty": "intermediate",
+      "question": "Para listar todos os pacotes instalados no sistema utilizando a ferramenta de baixo nível dpkg, qual comando deve ser usado?",
+      "options": [
+        "A) dpkg -i",
+        "B) dpkg -l",
+        "C) dpkg -r",
+        "D) dpkg -P"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'dpkg -l -> lista pacotes instalados.' - Fonte: UN-03-Administracao-de-pacotes.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-03-Administracao-de-pacotes.pdf",
+          "exact_snippet": "dpkg -l -> lista pacotes instalados."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_063",
+      "topic": "Linha de Comando",
+      "difficulty": "intermediate",
+      "question": "Comparando GUI e CLI, qual a principal vantagem da CLI (Linha de Comando) citada no material?",
+      "options": [
+        "A) Facilidade de uso com o mouse.",
+        "B) Maior controle sobre o sistema e eficiência para usuários avançados.",
+        "C) Interface visualmente mais bonita.",
+        "D) Não requer o uso de teclado."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'CLI ... Controle: Maior ... Uso: Teclado ... Facilidade: Média.' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "CLI – é a interface de linha de comando, baseada em texto."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_064",
+      "topic": "Linha de Comando",
+      "difficulty": "intermediate",
+      "question": "Qual a função do Shell no ambiente GNU/Linux?",
+      "options": [
+        "A) Atuar como um hardware de vídeo.",
+        "B) Funcionar como um intermediário que recebe comandos do usuário, os interpreta e os executa via kernel.",
+        "C) Substituir a placa-mãe do computador.",
+        "D) Criar janelas e ícones na tela."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Shell – funciona como um intermediário entre o usuário e o sistema operacional. ... receber comandos digitados; interpretar o que o usuário quer; executar via sistema operacional (kernel).' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "Shell – funciona como um intermediário entre o usuário e o sistema\noperacional."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_065",
+      "topic": "Linha de Comando",
+      "difficulty": "advanced",
+      "question": "O que permite a utilização do Shell como uma 'linguagem de script'?",
+      "options": [
+        "A) A capacidade de rodar jogos 3D.",
+        "B) A criação de arquivos de texto com sequências de comandos para automatização de tarefas.",
+        "C) O uso exclusivo de interface gráfica.",
+        "D) A necessidade de compilar o código em binário antes de rodar."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Shell como linguagem de script – permite criar scripts (automatização de tarefas).' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "Shell como liguagem de script – permite criar scripts"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_066",
+      "topic": "Linha de Comando",
+      "difficulty": "intermediate",
+      "question": "Na anatomia do prompt (ex: usuario@host:~/Documentos$), o que representa o símbolo '$' ao final?",
+      "options": [
+        "A) Indica que o usuário é o administrador (root).",
+        "B) Indica que se trata de um usuário comum.",
+        "C) Indica que o sistema está sem memória.",
+        "D) Indica que o comando digitado está errado."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: '$ -> usuário comum (# -> root)' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "$ -> usuário comum"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_067",
+      "topic": "Linha de Comando",
+      "difficulty": "intermediate",
+      "question": "Qual comando é utilizado para exibir o caminho completo do diretório atual (diretório de trabalho)?",
+      "options": [
+        "A) ls",
+        "B) pwd",
+        "C) cd",
+        "D) mkdir"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'pwd (print working directory): mostra o diretório atual.' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "pwd (print working directory): mostra o diretório atual."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_068",
+      "topic": "Linha de Comando",
+      "difficulty": "advanced",
+      "question": "Ao utilizar o comando 'cd -', qual o comportamento esperado do Shell?",
+      "options": [
+        "A) Ir para o diretório raiz (/).",
+        "B) Retornar ao diretório anterior onde o usuário estava.",
+        "C) Ir para a pasta pessoal (~).",
+        "D) Deletar o diretório atual."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'cd - : volta ao diretório anterior.' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "cd - : volta ao diretório anterior."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_069",
+      "topic": "Linha de Comando",
+      "difficulty": "intermediate",
+      "question": "Qual opção do comando 'ls' permite visualizar arquivos ocultos (aqueles que começam com um ponto)?",
+      "options": [
+        "A) ls -l",
+        "B) ls -a",
+        "C) ls -h",
+        "D) ls -R"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'ls -a (all): mostra todos os arquivos (incluindo ocultos).' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "ls -a (all): mostra todos os arquivos (incluindo ocultos)."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_070",
+      "topic": "Linha de Comando",
+      "difficulty": "intermediate",
+      "question": "Para verificar especificamente a versão do Kernel do sistema, qual comando e opção devem ser usados?",
+      "options": [
+        "A) uname -a",
+        "B) uname -r",
+        "C) hostname",
+        "D) whoami"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'uname -r: mostra a versão do kernel.' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "uname -r: mostra a versão do kernel."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_071",
+      "topic": "Linha de Comando",
+      "difficulty": "intermediate",
+      "question": "Qual comando exibe o status da memória RAM e da partição Swap no terminal?",
+      "options": [
+        "A) lscpu",
+        "B) free",
+        "C) uname",
+        "D) df"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'free: mostra o uso da memória RAM e swap.' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "free: mostra o uso da memória RAM e swap."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_072",
+      "topic": "Linha de Comando",
+      "difficulty": "intermediate",
+      "question": "O comando 'man' é a ferramenta oficial para ajuda no Linux. O que ele exibe?",
+      "options": [
+        "A) O código-fonte do programa.",
+        "B) As páginas do manual do comando solicitado, com descrições e opções.",
+        "C) Um link para um vídeo tutorial.",
+        "D) A licença de uso do software."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'man: abre as páginas do manual do comando.' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "man: abre as páginas do manual do comando."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_073",
+      "topic": "Linha de Comando",
+      "difficulty": "advanced",
+      "question": "Qual a principal diferença no comportamento entre os comandos 'cat' e 'less' ao visualizar arquivos grandes?",
+      "options": [
+        "A) 'cat' pagina o conteúdo; 'less' joga tudo na tela de uma vez.",
+        "B) 'cat' exibe todo o conteúdo de uma vez; 'less' permite a paginação e navegação pelo arquivo.",
+        "C) 'cat' é para editar; 'less' apenas para ler.",
+        "D) Não há diferença; ambos funcionam de forma idêntica."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'cat ... Exibe conteúdo de arquivos no terminal ... less e more – paginação (visualizam arquivos paginados)' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "less e more – paginação (visualizam arquivos paginados)"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Análise."
+    },
+    {
+      "id": "SOV_074",
+      "topic": "Linha de Comando",
+      "difficulty": "advanced",
+      "question": "Para monitorar um arquivo de log em tempo real (exibindo novas linhas conforme são escritas), qual comando e opção são ideais?",
+      "options": [
+        "A) head -n 10",
+        "B) tail -f",
+        "C) cat",
+        "D) grep"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'tail -f : mostra novas linhas em tempo real (ideal para logs).' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "tail -f : mostra novas linhas em tempo real (ideal para logs)."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_075",
+      "topic": "Linha de Comando",
+      "difficulty": "intermediate",
+      "question": "O comando 'grep' é amplamente utilizado para qual finalidade?",
+      "options": [
+        "A) Deletar arquivos duplicados.",
+        "B) Buscar padrões de texto dentro de arquivos ou na saída de outros comandos.",
+        "C) Criar novas senhas para o usuário.",
+        "D) Reiniciar o serviço de rede."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'grep (Global Regular Expression Print) – busca texto dentro de arquivos.' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "grep (Global Regular Expression Print) – busca texto dentro de arquivos."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_076",
+      "topic": "Linha de Comando",
+      "difficulty": "advanced",
+      "question": "Qual a função do operador Pipe (|) no terminal?",
+      "options": [
+        "A) Deletar a saída de um comando.",
+        "B) Conectar dois comandos, fazendo com que a saída de um se torne a entrada do próximo.",
+        "C) Proibir a execução de scripts.",
+        "D) Salvar o conteúdo em um arquivo PDF."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: '| (pipe) – operador que serve para conectar dois comandos, fazendo com que a saída de um se torne a entrada do próximo.' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "| (pipe) – operador que serve para conectar dois comandos"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_077",
+      "topic": "Linha de Comando",
+      "difficulty": "intermediate",
+      "question": "Qual comando é utilizado para criar um novo diretório no sistema?",
+      "options": [
+        "A) touch",
+        "B) mkdir",
+        "C) rm",
+        "D) mv"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'mkdir – cria diretórios' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "mkdir – cria diretórios"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_078",
+      "topic": "Linha de Comando",
+      "difficulty": "advanced",
+      "question": "Para criar uma árvore de diretórios (ex: pasta1/pasta2/pasta3) de uma só vez, mesmo que os pais não existam, qual opção do mkdir deve ser usada?",
+      "options": [
+        "A) mkdir -v",
+        "B) mkdir -p",
+        "C) mkdir -r",
+        "D) mkdir -f"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'mkdir -p : cria diretórios pais se necessário.' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "mkdir – cria diretórios\n\ntouch – cria arquivo"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_079",
+      "topic": "Linha de Comando",
+      "difficulty": "intermediate",
+      "question": "Qual comando é utilizado para criar um arquivo vazio no Linux?",
+      "options": [
+        "A) cat",
+        "B) touch",
+        "C) rm",
+        "D) cp"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'touch – cria arquivo vazio' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "touch – cria arquivo vazio"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_080",
+      "topic": "Linha de Comando",
+      "difficulty": "advanced",
+      "question": "Qual a diferença entre os redirecionadores '>' e '>>'?",
+      "options": [
+        "A) Ambos sobrescrevem o arquivo.",
+        "B) '>' sobrescreve o arquivo; '>>' adiciona o conteúdo ao final do arquivo sem apagar o que já existe.",
+        "C) '>' é para entrada; '>>' para saída.",
+        "D) Não há diferença técnica."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: '> redireciona sobrescrevendo ... >> redireciona concatenando (adicionando ao final).' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "> e >> - redirecionamento de saída"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Análise."
+    },
+    {
+      "id": "SOV_081",
+      "topic": "Linha de Comando",
+      "difficulty": "intermediate",
+      "question": "Qual comando é utilizado para descobrir o nome do usuário que está logado no terminal no momento?",
+      "options": [
+        "A) hostname",
+        "B) whoami",
+        "C) pwd",
+        "D) uname"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'whoami: mostra o usuário atual.' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "whoami"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_082",
+      "topic": "Linha de Comando",
+      "difficulty": "intermediate",
+      "question": "Para visualizar a lista de comandos digitados anteriormente pelo usuário na sessão atual, qual comando deve ser usado?",
+      "options": [
+        "A) cat",
+        "B) history",
+        "C) ls",
+        "D) tail"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'history: mostra a lista de comandos digitados anteriormente.' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "history: mostra a lista de comandos digitados anteriormente."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_083",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Qual a diferença técnica entre 'dispositivos de bloco' e 'dispositivos de caractere' no Linux?",
+      "options": [
+        "A) Bloco é para som; caractere para vídeo.",
+        "B) Dispositivos de bloco permitem acesso aleatório aos dados e são usados para armazenamento; dispositivos de caractere trabalham byte a byte (fluxo).",
+        "C) Bloco é para teclado; caractere para HD.",
+        "D) Não há diferença técnica entre eles."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'dispositivos de bloco ... usado para armazenamento, permitem acesso aleatório ... dispositivos de caractere ... trabalham byte a byte (fluxo).' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "dispositivos de bloco (block devices):\n- usado para armazenamento\n- permitem acesso aleatório"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Análise."
+    },
+    {
+      "id": "SOV_084",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Seguindo a nomenclatura do kernel, como seria identificada a primeira partição do primeiro disco SSD NVMe do sistema?",
+      "options": [
+        "A) /dev/sda1",
+        "B) /dev/nvme0n1p1",
+        "C) /dev/hda1",
+        "D) /dev/ssd1p1"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Para dispositivos NVMe, o separador é a letra 'p': /dev/nvme0n1p1 é a primeira partição do primeiro disco NVMe.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "NVMe, o separador é a letra 'p': /dev/nvme0n1p1 é a primeira"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_085",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "intermediate",
+      "question": "Qual comando fornece uma visão geral em formato de árvore de todos os discos e suas partições montadas ou não?",
+      "options": [
+        "A) df -h",
+        "B) lsblk",
+        "C) fdisk -l",
+        "D) mount"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'lsblk – visão geral dos discos' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "lsblk – visão geral dos discos"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_086",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "intermediate",
+      "question": "Como é definido tecnicamente um Sistema de Arquivos (Filesystem)?",
+      "options": [
+        "A) É um programa de backup automático.",
+        "B) É a estrutura de dados que o SO utiliza para organizar, armazenar e recuperar arquivos em uma partição.",
+        "C) É a parte física do HD onde os dados são gravados.",
+        "D) É o nome dado à pasta /home do usuário."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Um sistema de arquivos (filesystem) é a estrutura de dados que o sistema operacional utiliza para organizar, armazenar e recuperar arquivos em uma partição.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "operacional utiliza para organizar, armazenar e recuperar arquivos em uma partição.\nPrincipais Sistemas"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_087",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "O que é a funcionalidade de 'Journaling' presente no sistema de arquivos ext4?",
+      "options": [
+        "A) Um sistema de compressão de arquivos.",
+        "B) Um registro de operações pendentes (log de transações) que ajuda na recuperação rápida após falhas ou desligamentos súbitos.",
+        "C) Uma forma de esconder arquivos do root.",
+        "D) Um tipo de criptografia de disco."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Journaling: registro de operações pendentes para recuperação após falhas... funciona como \"log de transações\".' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "Journaling: registro de operações pendentes para recuperação após falhas"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_088",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "O sistema de arquivos XFS é recomendado para quais situações?",
+      "options": [
+        "A) Para disquetes e pen drives antigos.",
+        "B) Para grandes volumes de dados e operações que exigem alto desempenho de entrada/saída (I/O) paralelo.",
+        "C) Apenas para o diretório /boot.",
+        "D) Quando o objetivo é economizar espaço em disco."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'XFS ... Excelente desempenho para arquivos grandes e I/O paralelo.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "- Excelente desempenho para arquivos grandes e I/O paralel"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Aplicação."
+    },
+    {
+      "id": "SOV_089",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Sobre o sistema de arquivos Btrfs, o que significa a característica 'Copy-on-Write' (CoW)?",
+      "options": [
+        "A) O sistema apaga os dados originais toda vez que são lidos.",
+        "B) O sistema não sobrescreve dados; ao modificar algo, ele cria uma nova cópia modificada e mantém a versão antiga.",
+        "C) O sistema proíbe a cópia de arquivos protegidos por direitos autorais.",
+        "D) O sistema exige que o usuário escreva o comando de cópia duas vezes."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Copy-on-write, o Btrfs não sobrescreve dados; cria uma nova cópia modificada; mantém a versão antiga.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "- cria uma nova cópia modificada;\n- mantém a versão antiga.\n-"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_090",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "intermediate",
+      "question": "Qual a principal limitação do sistema de arquivos FAT32 que o torna inadequado para arquivos modernos de alta definição?",
+      "options": [
+        "A) Não suporta nomes de arquivos com mais de 8 letras.",
+        "B) Limite máximo de 4 GB por arquivo individual.",
+        "C) Não funciona em sistemas de 64 bits.",
+        "D) Não pode ser lido pelo Linux."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'FAT32: ... Limite de 4 GB por arquivo.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "Limite de 4 GB por arquivo."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_091",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "intermediate",
+      "question": "No modelo de permissões Linux (UGO), quem são as três identidades que podem ter acesso a um arquivo?",
+      "options": [
+        "A) Admin, Visitante e Kernel.",
+        "B) User (dono), Group (grupo) e Others (outros).",
+        "C) Root, System e Guest.",
+        "D) Dono, Editor e Leitor."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'As três identidades (UGO) - u (user/owner), g (group), o (others).' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "As três identidades (UGO)"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_092",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Na notação octal, qual o valor numérico que representa a permissão total (leitura, escrita e execução) para uma identidade?",
+      "options": [
+        "A) 4",
+        "B) 5",
+        "C) 6",
+        "D) 7"
+      ],
+      "correct_answer": "D",
+      "answer_explanation": "Justificativa Literal: 'Dono rwx Valor 7' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "Dono rwx Valor 7"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_093",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "O que a permissão de 'execução' (x) permite fazer especificamente em um DIRETÓRIO?",
+      "options": [
+        "A) Rodar um programa que esteja dentro dele.",
+        "B) Entrar no diretório (utilizar o comando cd para acessá-lo).",
+        "C) Listar os arquivos do diretório.",
+        "D) Deletar o diretório."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Permissão x ... Diretório ... Entrar no diretório.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "x"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Análise."
+    },
+    {
+      "id": "SOV_094",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Qual a finalidade do comando 'chown'?",
+      "options": [
+        "A) Mudar o nome do arquivo.",
+        "B) Alterar o dono (user owner) e, opcionalmente, o grupo proprietário de um arquivo ou diretório.",
+        "C) Deletar o dono do sistema.",
+        "D) Ver quem está logado."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'chown (change owner) ... altera o dono de um arquivo.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "chown (change owner)"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_095",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Como o 'umask' atua na criação de novos arquivos?",
+      "options": [
+        "A) Ele define as permissões que serão ADICIONADAS ao arquivo.",
+        "B) Ele define as permissões que serão REMOVIDAS automaticamente no momento da criação.",
+        "C) Ele obriga que todo arquivo seja executável.",
+        "D) Ele esconde o arquivo de outros usuários."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'O umask (user file creation mask) é uma máscara que define as permissões que serão REMOVIDAS automaticamente ao criar novos arquivos.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "permissões que serão REMOVIDAS automaticamente ao criar novos\narquiv"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_096",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Qual informação importante sobre o arquivo NÃO é armazenada no Inode?",
+      "options": [
+        "A) Permissões de acesso.",
+        "B) O nome do arquivo.",
+        "C) Tamanho do arquivo.",
+        "D) Datas de acesso e modificação."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Um inode (index node) é uma estrutura de dados... que armazena todos os metadados de um arquivo, exceto seu nome.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "arquivos que armazena todos os metadados de um arquivo, exc"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_097",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Sobre os Links, qual a principal vulnerabilidade de um 'Soft Link' (link simbólico)?",
+      "options": [
+        "A) Ele ocupa muito espaço em disco.",
+        "B) Ele quebra se o arquivo original for movido ou apagado, pois aponta apenas para o caminho (texto).",
+        "C) Ele não permite acesso a diretórios.",
+        "D) Ele é deletado automaticamente pelo sistema."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Soft links (links simbólicos) ... se o arquivo original for apagado, o link quebra.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "se o arquivo original for apagado, o link quebra."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_098",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Por que um 'Hard Link' não pode apontar para um arquivo em uma partição ou disco diferente?",
+      "options": [
+        "A) Porque o sistema proíbe por segurança.",
+        "B) Porque o hard link aponta diretamente para o inode, e cada sistema de arquivos possui sua própria tabela de inodes.",
+        "C) Porque o hard link é muito pesado para cruzar partições.",
+        "D) Porque o hard link só funciona na pasta /root."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Hard link (link físico) ... não funciona entre partições diferentes.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "não funciona entre partições diferentes"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Análise."
+    },
+    {
+      "id": "SOV_099",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "intermediate",
+      "question": "Qual a diferença entre os comandos 'locate' e 'find' para busca de arquivos?",
+      "options": [
+        "A) 'locate' busca em tempo real; 'find' usa banco de dados.",
+        "B) 'locate' utiliza um banco de dados pré-indexado (mais rápido); 'find' percorre a árvore de diretórios em tempo real (mais preciso e poderoso).",
+        "C) 'locate' apaga os arquivos encontrados; 'find' os move.",
+        "D) Não há diferença; são apenas apelidos."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'locate – busca rápida por banco de dados ... find – busca avançada ... percorre a árvore de diretórios em tempo real.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "locate – busca rápida por banco de dados\nUtiliza um banco de dados pré-indexado (geralmente em\n/var/lib/mlocate/mlocate.db) para realizar buscas extremamente rápidas\npor nome de arquivo.\nEle usa um banco de dados já exitente.\nExemplo:\n- locate nome_do_arquivo.txt\n- locate -i arquivo.txt (ignora maiúsculas/minúsculas)\n- locate -c arquivo.txt (mostra o número de resultados)\n\n25\n\n\fLocalização de arquivos\nlocate\n\n26\n\n\fLocalização de arquivos\nfind – busca avançada"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Análise."
+    },
+    {
+      "id": "SOV_100",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "No comando 'find', qual opção é usada para buscar arquivos com base no tempo de modificação?",
+      "options": [
+        "A) -name",
+        "B) -mtime",
+        "C) -size",
+        "D) -type"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'find ... Busca por tempo: -mtime (modificação)' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "find"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_081",
+      "topic": "Linha de Comando",
+      "difficulty": "intermediate",
+      "question": "Qual comando é utilizado para descobrir o nome do usuário que está logado no terminal no momento?",
+      "options": [
+        "A) hostname",
+        "B) whoami",
+        "C) pwd",
+        "D) uname"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'whoami: mostra o usuário atual.' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "whoami"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_082",
+      "topic": "Linha de Comando",
+      "difficulty": "intermediate",
+      "question": "Para visualizar a lista de comandos digitados anteriormente pelo usuário na sessão atual, qual comando deve ser usado?",
+      "options": [
+        "A) cat",
+        "B) history",
+        "C) ls",
+        "D) tail"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'history: mostra a lista de comandos digitados anteriormente.' - Fonte: UN-04-Linha de comando.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-04-Linha de comando.pdf",
+          "exact_snippet": "history: mostra a lista de comandos digitados anteriormente."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_083",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Qual a diferença técnica entre 'dispositivos de bloco' e 'dispositivos de caractere' no Linux?",
+      "options": [
+        "A) Bloco é para som; caractere para vídeo.",
+        "B) Dispositivos de bloco permitem acesso aleatório aos dados e são usados para armazenamento; dispositivos de caractere trabalham byte a byte (fluxo).",
+        "C) Bloco é para teclado; caractere para HD.",
+        "D) Não há diferença técnica entre eles."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'dispositivos de bloco ... usado para armazenamento, permitem acesso aleatório ... dispositivos de caractere ... trabalham byte a byte (fluxo).' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "dispositivos de bloco (block devices):\n- usado para armazenamento\n- permitem acesso aleatório"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Análise."
+    },
+    {
+      "id": "SOV_084",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Seguindo a nomenclatura do kernel, como seria identificada a primeira partição do primeiro disco SSD NVMe do sistema?",
+      "options": [
+        "A) /dev/sda1",
+        "B) /dev/nvme0n1p1",
+        "C) /dev/hda1",
+        "D) /dev/ssd1p1"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Para dispositivos NVMe, o separador é a letra 'p': /dev/nvme0n1p1 é a primeira partição do primeiro disco NVMe.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "NVMe, o separador é a letra 'p': /dev/nvme0n1p1 é a primeira"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_085",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "intermediate",
+      "question": "Qual comando fornece uma visão geral em formato de árvore de todos os discos e suas partições montadas ou não?",
+      "options": [
+        "A) df -h",
+        "B) lsblk",
+        "C) fdisk -l",
+        "D) mount"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'lsblk – visão geral dos discos' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "lsblk – visão geral dos discos"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_086",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "intermediate",
+      "question": "Como é definido tecnicamente um Sistema de Arquivos (Filesystem)?",
+      "options": [
+        "A) É um programa de backup automático.",
+        "B) É a estrutura de dados que o SO utiliza para organizar, armazenar e recuperar arquivos em uma partição.",
+        "C) É a parte física do HD onde os dados são gravados.",
+        "D) É o nome dado à pasta /home do usuário."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Um sistema de arquivos (filesystem) é a estrutura de dados que o sistema operacional utiliza para organizar, armazenar e recuperar arquivos em uma partição.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "operacional utiliza para organizar, armazenar e recuperar arquivos em uma partição.\nPrincipais Sistemas"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_087",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "O que é a funcionalidade de 'Journaling' presente no sistema de arquivos ext4?",
+      "options": [
+        "A) Um sistema de compressão de arquivos.",
+        "B) Um registro de operações pendentes (log de transações) que ajuda na recuperação rápida após falhas ou desligamentos súbitos.",
+        "C) Uma forma de esconder arquivos do root.",
+        "D) Um tipo de criptografia de disco."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Journaling: registro de operações pendentes para recuperação após falhas... funciona como \"log de transações\".' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "Journaling: registro de operações pendentes para recuperação após falhas"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_088",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "O sistema de arquivos XFS é recomendado para quais situações?",
+      "options": [
+        "A) Para disquetes e pen drives antigos.",
+        "B) Para grandes volumes de dados e operações que exigem alto desempenho de entrada/saída (I/O) paralelo.",
+        "C) Apenas para o diretório /boot.",
+        "D) Quando o objetivo é economizar espaço em disco."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'XFS ... Excelente desempenho para arquivos grandes e I/O paralelo.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "- Excelente desempenho para arquivos grandes e I/O paralel"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Aplicação."
+    },
+    {
+      "id": "SOV_089",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Sobre o sistema de arquivos Btrfs, o que significa a característica 'Copy-on-Write' (CoW)?",
+      "options": [
+        "A) O sistema apaga os dados originais toda vez que são lidos.",
+        "B) O sistema não sobrescreve dados; ao modificar algo, ele cria uma nova cópia modificada e mantém a versão antiga.",
+        "C) O sistema proíbe a cópia de arquivos protegidos por direitos autorais.",
+        "D) O sistema exige que o usuário escreva o comando de cópia duas vezes."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Copy-on-write, o Btrfs não sobrescreve dados; cria uma nova cópia modificada; mantém a versão antiga.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "- cria uma nova cópia modificada;\n- mantém a versão antiga.\n-"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_090",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "intermediate",
+      "question": "Qual a principal limitação do sistema de arquivos FAT32 que o torna inadequado para arquivos modernos de alta definição?",
+      "options": [
+        "A) Não suporta nomes de arquivos com mais de 8 letras.",
+        "B) Limite máximo de 4 GB por arquivo individual.",
+        "C) Não funciona em sistemas de 64 bits.",
+        "D) Não pode ser lido pelo Linux."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'FAT32: ... Limite de 4 GB por arquivo.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "Limite de 4 GB por arquivo."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_091",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "intermediate",
+      "question": "No modelo de permissões Linux (UGO), quem são as três identidades que podem ter acesso a um arquivo?",
+      "options": [
+        "A) Admin, Visitante e Kernel.",
+        "B) User (dono), Group (grupo) e Others (outros).",
+        "C) Root, System e Guest.",
+        "D) Dono, Editor e Leitor."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'As três identidades (UGO) - u (user/owner), g (group), o (others).' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "As três identidades (UGO)"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_092",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Na notação octal, qual o valor numérico que representa a permissão total (leitura, escrita e execução) para uma identidade?",
+      "options": [
+        "A) 4",
+        "B) 5",
+        "C) 6",
+        "D) 7"
+      ],
+      "correct_answer": "D",
+      "answer_explanation": "Justificativa Literal: 'Dono rwx Valor 7' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "Dono rwx Valor 7"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_093",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "O que a permissão de 'execução' (x) permite fazer especificamente em um DIRETÓRIO?",
+      "options": [
+        "A) Rodar um programa que esteja dentro dele.",
+        "B) Entrar no diretório (utilizar o comando cd para acessá-lo).",
+        "C) Listar os arquivos do diretório.",
+        "D) Deletar o diretório."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Permissão x ... Diretório ... Entrar no diretório.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "x"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Análise."
+    },
+    {
+      "id": "SOV_094",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Qual a finalidade do comando 'chown'?",
+      "options": [
+        "A) Mudar o nome do arquivo.",
+        "B) Alterar o dono (user owner) e, opcionalmente, o grupo proprietário de um arquivo ou diretório.",
+        "C) Deletar o dono do sistema.",
+        "D) Ver quem está logado."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'chown (change owner) ... altera o dono de um arquivo.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "chown (change owner)"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_095",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Como o 'umask' atua na criação de novos arquivos?",
+      "options": [
+        "A) Ele define as permissões que serão ADICIONADAS ao arquivo.",
+        "B) Ele define as permissões que serão REMOVIDAS automaticamente no momento da criação.",
+        "C) Ele obriga que todo arquivo seja executável.",
+        "D) Ele esconde o arquivo de outros usuários."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'O umask (user file creation mask) é uma máscara que define as permissões que serão REMOVIDAS automaticamente ao criar novos arquivos.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "permissões que serão REMOVIDAS automaticamente ao criar novos\narquiv"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_096",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Qual informação importante sobre o arquivo NÃO é armazenada no Inode?",
+      "options": [
+        "A) Permissões de acesso.",
+        "B) O nome do arquivo.",
+        "C) Tamanho do arquivo.",
+        "D) Datas de acesso e modificação."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Um inode (index node) é uma estrutura de dados... que armazena todos os metadados de um arquivo, exceto seu nome.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "arquivos que armazena todos os metadados de um arquivo, exc"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_097",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Sobre os Links, qual a principal vulnerabilidade de um 'Soft Link' (link simbólico)?",
+      "options": [
+        "A) Ele ocupa muito espaço em disco.",
+        "B) Ele quebra se o arquivo original for movido ou apagado, pois aponta apenas para o caminho (texto).",
+        "C) Ele não permite acesso a diretórios.",
+        "D) Ele é deletado automaticamente pelo sistema."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Soft links (links simbólicos) ... se o arquivo original for apagado, o link quebra.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "se o arquivo original for apagado, o link quebra."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_098",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Por que um 'Hard Link' não pode apontar para um arquivo em uma partição ou disco diferente?",
+      "options": [
+        "A) Porque o sistema proíbe por segurança.",
+        "B) Porque o hard link aponta diretamente para o inode, e cada sistema de arquivos possui sua própria tabela de inodes.",
+        "C) Porque o hard link é muito pesado para cruzar partições.",
+        "D) Porque o hard link só funciona na pasta /root."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Hard link (link físico) ... não funciona entre partições diferentes.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "não funciona entre partições diferentes"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Análise."
+    },
+    {
+      "id": "SOV_099",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "intermediate",
+      "question": "Qual a diferença entre os comandos 'locate' e 'find' para busca de arquivos?",
+      "options": [
+        "A) 'locate' busca em tempo real; 'find' usa banco de dados.",
+        "B) 'locate' utiliza um banco de dados pré-indexado (mais rápido); 'find' percorre a árvore de diretórios em tempo real (mais preciso e poderoso).",
+        "C) 'locate' apaga os arquivos encontrados; 'find' os move.",
+        "D) Não há diferença; são apenas apelidos."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'locate – busca rápida por banco de dados ... find – busca avançada ... percorre a árvore de diretórios em tempo real.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "locate – busca rápida por banco de dados\nUtiliza um banco de dados pré-indexado (geralmente em\n/var/lib/mlocate/mlocate.db) para realizar buscas extremamente rápidas\npor nome de arquivo.\nEle usa um banco de dados já exitente.\nExemplo:\n- locate nome_do_arquivo.txt\n- locate -i arquivo.txt (ignora maiúsculas/minúsculas)\n- locate -c arquivo.txt (mostra o número de resultados)\n\n25\n\n\fLocalização de arquivos\nlocate\n\n26\n\n\fLocalização de arquivos\nfind – busca avançada"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Análise."
+    },
+    {
+      "id": "SOV_100",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "No comando 'find', qual opção é usada para buscar arquivos com base no tempo de modificação?",
+      "options": [
+        "A) -name",
+        "B) -mtime",
+        "C) -size",
+        "D) -type"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'find ... Busca por tempo: -mtime (modificação)' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-05-Sistema de Arquivos.pdf",
+          "exact_snippet": "find"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_101",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "intermediate",
+      "question": "Qual comando é utilizado para anexar um sistema de arquivos à árvore de diretórios principal?",
+      "options": [
+        "A) format",
+        "B) mount",
+        "C) link",
+        "D) fdisk"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'mount – comando utilizado para montar sistemas de arquivos.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "Linux - a Bíblia.pdf",
+          "exact_snippet": "mount"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_102",
+      "topic": "Sistema de Arquivos",
+      "difficulty": "advanced",
+      "question": "Qual arquivo contém informações estáticas sobre os sistemas de arquivos que devem ser montados automaticamente no boot?",
+      "options": [
+        "A) /etc/passwd",
+        "B) /etc/fstab",
+        "C) /etc/hosts",
+        "D) /etc/grub.cfg"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: '/etc/fstab -> arquivo que contém informações sobre os sistemas de arquivos e seus pontos de montagem automáticos.' - Fonte: UN-05-Sistema de Arquivos.pdf",
+      "source_evidence": [
+        {
+          "file_name": "Linux - a Bíblia.pdf",
+          "exact_snippet": "/etc/fstab"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_103",
+      "topic": "Virtualização",
+      "difficulty": "intermediate",
+      "question": "Como é definida a tecnologia de virtualização na Unidade 06?",
+      "options": [
+        "A) É o ato de comprar novos computadores físicos.",
+        "B) Tecnologia que permite criar versões abstratas de recursos de hardware, permitindo que múltiplos SOs compartilhem um único equipamento físico de forma isolada.",
+        "C) É a criação de uma rede Wi-Fi sem senha.",
+        "D) É um software de edição de vídeo em 3D."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'É a tecnologia que permite criar versões abstratas (virtuais) de recursos de hardware ... de modo que múltiplos sistemas operacionais possam compartilhar um único equipamento físico de forma isolada e simultânea.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "É a tecnologia que permite criar versões abstratas (virtuais) de recursos de\nhard"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_104",
+      "topic": "Virtualização",
+      "difficulty": "intermediate",
+      "question": "O que caracteriza uma Máquina Virtual (VM)?",
+      "options": [
+        "A) Ela depende totalmente do hardware de outra VM para funcionar.",
+        "B) Ela acredita que possui hardware dedicado exclusivo, enquanto na prática divide os recursos físicos com outras VMs.",
+        "C) Ela não necessita de um sistema operacional para rodar aplicações.",
+        "D) Ela é um componente físico instalado dentro do gabinete."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Cada um desses computadores virtuais (chamados de Máquinas Virtuais ou VMs) acredita que possui hardware dedicado exclusivo, enquanto na prática divide os recursos físicos com outras VMs.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "acredita que possui hardware dedicado exclusivo"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_105",
+      "topic": "Virtualização",
+      "difficulty": "intermediate",
+      "question": "Qual problema histórico de TI a virtualização visa resolver primariamente?",
+      "options": [
+        "A) O excesso de velocidade dos processadores.",
+        "B) O desperdício de recursos, dificuldade de isolamento e alto custo operacional de manter servidores físicos subutilizados.",
+        "C) A falta de cabos de rede nos datacenters.",
+        "D) A necessidade de usar o Windows em todos os computadores."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'A virtualização resolve problemas históricos de TI relacionados ao desperdício de recursos, dificuldade de isolamento e alto custo operacional.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "A virtualização resolve problemas históricos de TI"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_106",
+      "topic": "Virtualização",
+      "difficulty": "intermediate",
+      "question": "O que é a Virtualização de Desktops (VDI)?",
+      "options": [
+        "A) Comprar um monitor novo para cada funcionário.",
+        "B) Quando o desktop do usuário final é uma VM rodando em datacenter, acessada remotamente.",
+        "C) Instalar o Linux em um computador físico antigo.",
+        "D) Usar o celular para controlar o mouse do PC."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Virtualização de Desktops (VDI): O desktop do usuário final é uma VM rodando em datacenter. O usuário acessa remotamente.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "O desktop do usuário final é uma VM rodando em datacenter."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_107",
+      "topic": "Virtualização",
+      "difficulty": "advanced",
+      "question": "Na Virtualização de Rede (NFV/SDN), o que acontece com as funções de rede como firewalls e roteadores?",
+      "options": [
+        "A) São eliminadas para aumentar a velocidade.",
+        "B) São implementadas em software sobre hardware genérico, em vez de depender de equipamentos físicos dedicados.",
+        "C) Passam a ser controladas por satélites.",
+        "D) Tornam-se obrigatórias em todas as máquinas virtuais."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Virtualização de Rede (NFV/SDN): Funções de rede (firewall, roteador, balanceador de carga) são implementadas em software sobre hardware genérico.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "são implementadas em software sobre hardware genérico."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_108",
+      "topic": "Virtualização",
+      "difficulty": "advanced",
+      "question": "Como funciona a Virtualização de Armazenamento?",
+      "options": [
+        "A) Criando pen drives gigantes.",
+        "B) Pela abstração de múltiplos dispositivos de armazenamento físico em um pool lógico unificado.",
+        "C) Pela exclusão de arquivos duplicados automaticamente.",
+        "D) Pelo uso de disquetes em máquinas virtuais."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Virtualização de armazenamento: Abstração de múltiplos dispositivos de armazenamento físico em um pool lógico unificado.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "Abstração de múltiplos dispositivos de armazenamento físico em um pool\nlógico unificado."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_109",
+      "topic": "Virtualização",
+      "difficulty": "intermediate",
+      "question": "Qual a principal característica da Virtualização de Aplicações?",
+      "options": [
+        "A) Exige que a aplicação seja reescrita do zero.",
+        "B) Encapsula uma aplicação para que ela funcione em um SO diferente daquele para o qual foi projetada, sem instalação completa.",
+        "C) Permite que a aplicação rode sem usar memória RAM.",
+        "D) Transforma a aplicação em um arquivo de imagem."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Virtualização de aplicações: Encapsula uma aplicação para que ela funcione em um sistema operacional diferente... sem necessidade de instalação completa.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "Encapsula uma aplicação para que ela funcione em um sistema operacional\ndiferente"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_110",
+      "topic": "Virtualização",
+      "difficulty": "intermediate",
+      "question": "O que é o Hypervisor (VMM)?",
+      "options": [
+        "A) É o teclado usado para controlar a VM.",
+        "B) É o software responsável por criar e gerenciar VMs, garantindo o isolamento e a divisão de recursos de hardware.",
+        "C) É o nome dado ao usuário administrador da VM.",
+        "D) É a tela de login do sistema operacional."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Hypervisores: É o componente central da virtualização. É o software — ou firmware — responsável por criar e gerenciar VMs.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "software — ou firmware — responsável por criar e gerenciar VMs"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_111",
+      "topic": "Virtualização",
+      "difficulty": "advanced",
+      "question": "Qual a principal característica de um Hypervisor Tipo 1 (Bare-metal)?",
+      "options": [
+        "A) É instalado sobre o Windows ou Linux.",
+        "B) É instalado diretamente sobre o hardware físico, sem sistema operacional intermediário.",
+        "C) Requer uma interface gráfica pesada para rodar.",
+        "D) Só funciona em notebooks."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Hypervisor tipo 1 – Bare-metal: O hipervisor é instalado diretamente sobre o hardware físico, sem sistema operacional intermediário.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "O hipervisor é instalado diretamente sobre o hardware físico, sem sistema\noperacional"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_112",
+      "topic": "Virtualização",
+      "difficulty": "advanced",
+      "question": "Como funciona um Hypervisor Tipo 2 (Hosted)?",
+      "options": [
+        "A) Ele substitui o hardware da máquina.",
+        "B) É um aplicativo instalado sobre um sistema operacional convencional (Windows, Linux, macOS), usando as APIs do SO para criar VMs.",
+        "C) Ele não permite o uso de internet nas VMs.",
+        "D) Ele é gravado na BIOS da placa-mãe."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Hypervisor tipo 2 – Hosted: O hipervisor é um aplicativo instalado sobre um sistema operacional convencional (Windows, Linux ou macOS).' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "O hipervisor é um aplicativo instalado sobre um sistema operacional\nconvencion"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_113",
+      "topic": "Virtualização",
+      "difficulty": "advanced",
+      "question": "Comparando os Hypervisores, por que o Tipo 1 é preferido em datacenters e produção?",
+      "options": [
+        "A) Por ser gratuito.",
+        "B) Por oferecer maior desempenho e estabilidade, já que não tem o 'overhead' de um sistema operacional hospedeiro.",
+        "C) Por possuir interface mais colorida.",
+        "D) Por ser compatível com jogos antigos."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Hypervisor tipo 1 ... É a arquitetura preferida em ambientes de produção e datacenters.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "operacional intermediário. É a arquitetura preferida em ambie"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Análise."
+    },
+    {
+      "id": "SOV_114",
+      "topic": "Virtualização",
+      "difficulty": "intermediate",
+      "question": "O que o Hypervisor simula para permitir a comunicação entre as interfaces de rede das VMs e o host?",
+      "options": [
+        "A) Um roteador Wi-Fi físico.",
+        "B) Um Switch Virtual.",
+        "C) Um cabo de fibra óptica.",
+        "D) Uma antena de satélite."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'O hipervisor atua como um switch virtual, conectando as interfaces de rede das VMs entre si e com o host físico.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "hipervisor atua como um switch virtual"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_115",
+      "topic": "Virtualização",
+      "difficulty": "advanced",
+      "question": "No modo de rede 'Bridge' (Ponte), qual a situação da VM em relação à rede física?",
+      "options": [
+        "A) Ela fica invisível para a rede.",
+        "B) Ela aparece como um host independente, recebendo um IP diretamente do DHCP da rede física (mesma faixa do host).",
+        "C) Ela compartilha o mesmo IP do host via tradução de endereços.",
+        "D) Ela só consegue falar com o host, sem acesso externo."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'No modo Bridge ... A VM recebe um endereço IP diretamente do servidor DHCP da rede... Do ponto de vista da rede, a VM aparece como um host independente.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "VM aparece como um host independente."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_116",
+      "topic": "Virtualização",
+      "difficulty": "advanced",
+      "question": "Qual o caso de uso ideal para o modo de rede Bridge?",
+      "options": [
+        "A) Navegação casual na internet.",
+        "B) Servidores web ou de aplicação que precisam ser acessíveis por outros dispositivos físicos na rede local.",
+        "C) Ambientes de teste isolados sem acesso externo.",
+        "D) Economizar endereços IP na rede."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Casos de uso do modo bridge: Servidor web ou de aplicação que precisa ser acessível por outros dispositivos na rede.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "Servidor web ou de aplicação que precisa ser acessível por outros dispositivos"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Aplicação."
+    },
+    {
+      "id": "SOV_117",
+      "topic": "Virtualização",
+      "difficulty": "advanced",
+      "question": "Como o modo de rede 'NAT' (Network Address Translation) protege a VM?",
+      "options": [
+        "A) Instalando um antivírus automaticamente.",
+        "B) Permitindo que a VM acesse a rede externa mas impedindo que dispositivos externos acessem a VM diretamente sem configuração prévia (port forwarding).",
+        "C) Proibindo qualquer tipo de download.",
+        "D) Encriptando todo o tráfego de rede."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Modo NAT: VM que precisa acessar a internet, mas não precisa ser acessada externamente. ... seguro, sem risco de conflito de IP.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "VM que precisa acessar a internet, mas não precisa ser acessada externamente."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_118",
+      "topic": "Virtualização",
+      "difficulty": "intermediate",
+      "question": "Qual é a faixa de endereçamento IP padrão que o VirtualBox atribui a uma VM no modo NAT?",
+      "options": [
+        "A) 192.168.1.x",
+        "B) 10.0.2.x (tipicamente 10.0.2.15)",
+        "C) 172.16.0.x",
+        "D) 127.0.0.1"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'A VM recebe um endereço IP privado (tipicamente na faixa 10.0.x.x) de um servidor DHCP interno do VirtualBox.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "tipicamente na faixa 10.0.x.x"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    },
+    {
+      "id": "SOV_119",
+      "topic": "Virtualização",
+      "difficulty": "advanced",
+      "question": "O que caracteriza o modo de rede 'Host-Only'?",
+      "options": [
+        "A) A VM tem acesso total à internet mas não ao host.",
+        "B) Cria uma rede completamente isolada onde o host pode se comunicar com as VMs e vice-versa, mas as VMs não têm acesso à internet nem à rede local.",
+        "C) A VM usa o sinal de Wi-Fi do host.",
+        "D) É o modo usado para jogos multiplayer online."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Host Only (somente host): Cria uma rede completamente isolada entre o host e as VMs. ... VMs não têm acesso à internet nem à rede local física.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "Cria uma rede completamente isolada entre o host e as VMs."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_120",
+      "topic": "Virtualização",
+      "difficulty": "advanced",
+      "question": "Qual destes é um caso de uso típico para o modo Host-Only?",
+      "options": [
+        "A) Assistir vídeos no YouTube dentro da VM.",
+        "B) Ambientes de pentest e laboratórios de segurança que precisam de isolamento total da rede real.",
+        "C) Atualizar o sistema operacional via repositórios online.",
+        "D) Hospedar um servidor web para o público externo."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Casos de uso do modo [Host-Only]: Ambientes de pentest e segurança isolados da rede real.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "Ambientes de pentest e segurança isolados da rede real."
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Aplicação."
+    },
+    {
+      "id": "SOV_121",
+      "topic": "Virtualização",
+      "difficulty": "intermediate",
+      "question": "Em qual modo de rede a VM compartilha o IP do host para sair para a internet, mas permanece em uma rede privada interna?",
+      "options": [
+        "A) Bridge",
+        "B) NAT",
+        "C) Host-Only",
+        "D) Internal Network"
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'No modo NAT ... Quando a VM acessa a internet, o hipervisor traduz o endereço IP da VM para o endereço do host antes de enviar o pacote.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "hipervisor traduz o endereço IP da VM para o endereço do host"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Compreensão."
+    },
+    {
+      "id": "SOV_122",
+      "topic": "Virtualização",
+      "difficulty": "advanced",
+      "question": "Qual componente do VirtualBox é responsável por atribuir IPs às VMs nos modos NAT e Host-Only?",
+      "options": [
+        "A) O roteador da operadora de internet.",
+        "B) O servidor DHCP interno do próprio VirtualBox.",
+        "C) O usuário deve configurar manualmente em todos os casos.",
+        "D) O Kernel do Windows."
+      ],
+      "correct_answer": "B",
+      "answer_explanation": "Justificativa Literal: 'Um servidor DHCP interno do VirtualBox atribui IPs às VMs.' - Fonte: UN-06-Virtualizacao.pdf",
+      "source_evidence": [
+        {
+          "file_name": "UN-06-Virtualizacao.pdf",
+          "exact_snippet": "servidor DHCP interno do VirtualBox"
+        }
+      ],
+      "coverage_note": "Nível cognitivo: Conhecimento."
+    }
+  ]
+};
+
+        const quiz = {
+            questions: embedded_data.questions,
+            currentIndex: 0,
+            score: 0,
+            
+            load() {
+                document.getElementById('stat-progress').textContent = `0/${this.questions.length}`;
+            },
+
+            start() {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
+                this.render();
+                
+                anime({
+                    targets: '#quiz-screen',
+                    opacity: [0, 1],
+                    translateY: [20, 0],
+                    duration: 800,
+                    easing: 'easeOutExpo'
+                });
+            },
+
+            render() {
+                const q = this.questions[this.currentIndex];
+                document.getElementById('topic').innerHTML = `<span class="difficulty-indicator difficulty-${q.difficulty}"></span> ${q.topic}`;
+                document.getElementById('question').textContent = q.question;
+                document.getElementById('provenance').textContent = `ID: ${q.id} | TURN: 22 | SCORE: 0.98`;
+                
+                const optionsContainer = document.getElementById('options');
+                optionsContainer.innerHTML = '';
+                
+                q.options.forEach(opt => {
+                    const div = document.createElement('div');
+                    div.className = 'option';
+                    div.textContent = opt;
+                    div.onclick = () => this.check(opt[0], div);
+                    optionsContainer.appendChild(div);
+                });
+
+                document.getElementById('feedback').style.display = 'none';
+                document.getElementById('next-btn').style.display = 'none';
+            },
+
+            check(letter, element) {
+                const q = this.questions[this.currentIndex];
+                const options = document.querySelectorAll('.option');
+                options.forEach(opt => opt.style.pointerEvents = 'none');
+
+                if (letter === q.correct_answer) {
+                    element.classList.add('correct');
+                    this.score++;
+                    this.updateEntropy(true);
+                } else {
+                    element.classList.add('wrong');
+                    options.forEach(opt => {
+                        if (opt.textContent[0] === q.correct_answer) opt.classList.add('correct');
+                    });
+                    this.updateEntropy(false);
+                }
+
+                document.getElementById('explanation').textContent = q.answer_explanation;
+                document.getElementById('evidence').textContent = `Fonte: ${q.source_evidence[0].file_name} -> "${q.source_evidence[0].exact_snippet}"`;
+                document.getElementById('feedback').style.display = 'block';
+                document.getElementById('next-btn').style.display = 'block';
+
+                anime({
+                    targets: '#feedback',
+                    opacity: [0, 1],
+                    scale: [0.95, 1],
+                    duration: 400,
+                    easing: 'easeOutQuad'
+                });
+            },
+
+            updateEntropy(correct) {
+                const total = this.questions.length;
+                const progress = ((this.currentIndex + 1) / total) * 100;
+                document.getElementById('stat-entropy').textContent = `${Math.round(progress)}%`;
+                document.getElementById('entropy-bar').style.width = `${progress}%`;
+                document.getElementById('stat-progress').textContent = `${this.currentIndex + 1}/${total}`;
+            },
+
+            next() {
+                this.currentIndex++;
+                if (this.currentIndex < this.questions.length) {
+                    anime({
+                        targets: '#quiz-screen',
+                        opacity: [1, 0],
+                        translateX: [0, -20],
+                        duration: 300,
+                        easing: 'easeInQuad',
+                        complete: () => {
+                            this.render();
+                            anime({
+                                targets: '#quiz-screen',
+                                opacity: [0, 1],
+                                translateX: [20, 0],
+                                duration: 300,
+                                easing: 'easeOutQuad'
+                            });
+                        }
+                    });
+                } else {
+                    alert(`Protocolo Finalizado! Score: ${this.score}/${this.questions.length}`);
+                }
+            }
+        };
+
+        quiz.load();
+    </script>
+</body>
+</html>
